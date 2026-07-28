@@ -24,8 +24,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "./ui/button";
-import { SidebarTrigger, useSidebar } from "./ui/sidebar";
+import { Button } from "../ui/button";
+import { SidebarTrigger, useSidebar } from "../ui/sidebar";
 
 export default function Navbar() {
   const { theme, setTheme } = useTheme()

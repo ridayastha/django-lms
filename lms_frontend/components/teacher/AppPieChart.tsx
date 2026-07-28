@@ -7,7 +7,7 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "./ui/chart";
+} from "../ui/chart";
 
 // ==========================================
 // 1. MOCK DATASETS & CONFIGS

@@ -3,8 +3,8 @@ import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
-import AppSidebar from "@/components/AppSidebar";
-import Navbar from "@/components/Navbar";
+import AppSidebar from "@/components/teacher/AppSidebar";
+import Navbar from "@/components/teacher/Navbar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 
@@ -36,9 +36,9 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange>
             <SidebarProvider defaultOpen={defaultOpen}>
-          <AppSidebar />
+          {/* <AppSidebar /> */}
           <main className="w-full">
-            <Navbar />
+            {/* <Navbar /> */}
             <div className="px-4">{children}</div>
           </main>
           </SidebarProvider>
