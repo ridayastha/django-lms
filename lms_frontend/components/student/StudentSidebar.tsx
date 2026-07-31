@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { LucideIcon } from "lucide-react";
 import {
@@ -77,17 +78,17 @@ const studentNavGroups: NavGroup[] = [
     items: [
       {
         title: "Dashboard",
-        url: "/student/dashboard",
+        url: "/students",
         icon: LayoutDashboard,
       },
       {
         title: "Explore Courses",
-        url: "/courses",
+        url: "/students/courses",
         icon: Compass,
       },
       {
         title: "Categories",
-        url: "/categories",
+        url: "students/categories",
         icon: Grid,
       },
     ],
@@ -103,28 +104,28 @@ const studentNavGroups: NavGroup[] = [
         items: [
           {
             title: "Enrolled Courses",
-            url: "/student/courses",
+            url: "/students/courses",
             badge: "4",
           },
           {
             title: "Completed Courses",
-            url: "/student/courses/completed",
+            url: "/students/courses/completed",
           },
         ],
       },
       {
         title: "Quizzes & Scores",
-        url: "/student/quizzes",
+        url: "/students/quizzes",
         icon: ClipboardList,
       },
       {
         title: "My Certificates",
-        url: "/student/certificates",
+        url: "/students/certificates",
         icon: Award,
       },
       {
         title: "My Reviews",
-        url: "/student/reviews",
+        url: "/students/reviews",
         icon: Star,
       },
     ],
@@ -134,7 +135,7 @@ const studentNavGroups: NavGroup[] = [
     items: [
       {
         title: "Profile & Settings",
-        url: "/student/settings",
+        url: "/students/settings",
         icon: Settings,
       },
     ],
@@ -142,6 +143,8 @@ const studentNavGroups: NavGroup[] = [
 ];
 
 export default function StudentSidebar() {
+  const pathname = usePathname();
+
   return (
     <TooltipProvider>
       <Sidebar collapsible="icon">
@@ -150,7 +153,7 @@ export default function StudentSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
-                <Link href="/student/dashboard">
+                <Link href="/students">
                   <div className="flex items-center justify-center  bg-primary text-primary-foreground p-1.5">
                     <GraduationCap className="h-5 w-5" />
                   </div>
@@ -176,58 +179,71 @@ export default function StudentSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {group.items.map((item) => {
-                    // Render Collapsible Group
-                    if (item.isCollapsible && item.items) {
-                      return (
-                        <Collapsible
-                          key={item.title}
-                          defaultOpen={item.defaultOpen}
-                          className="group/collapsible"
-                        >
-                          <SidebarMenuItem>
-                            <CollapsibleTrigger asChild>
-                              <SidebarMenuButton tooltip={item.title}>
-                                <item.icon className="h-4 w-4" />
-                                <span>{item.title}</span>
-                                <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                              </SidebarMenuButton>
-                            </CollapsibleTrigger>
+  // Check if any child route is active
+  const isParentActive =
+    item.items?.some((subItem) => pathname.startsWith(subItem.url)) ?? false;
 
-                            <CollapsibleContent>
-                              <SidebarMenuSub>
-                                {item.items.map((subItem) => (
-                                  <SidebarMenuSubItem key={subItem.title}>
-                                    <SidebarMenuSubButton asChild>
-                                      <Link href={subItem.url}>
-                                        <span>{subItem.title}</span>
-                                      </Link>
-                                    </SidebarMenuSubButton>
-                                    {subItem.badge && (
-                                      <SidebarMenuBadge>
-                                        {subItem.badge}
-                                      </SidebarMenuBadge>
-                                    )}
-                                  </SidebarMenuSubItem>
-                                ))}
-                              </SidebarMenuSub>
-                            </CollapsibleContent>
-                          </SidebarMenuItem>
-                        </Collapsible>
-                      );
-                    }
+  // Collapsible Menu
+  if (item.isCollapsible && item.items) {
+    return (
+      <Collapsible
+        key={item.title}
+        defaultOpen={item.defaultOpen || isParentActive}
+        className="group/collapsible"
+      >
+        <SidebarMenuItem>
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton
+              tooltip={item.title}
+              isActive={isParentActive}
+            >
+              <item.icon className="h-4 w-4" />
+              <span>{item.title}</span>
+              <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
 
-                    // Render Standard Single Link Item (with safe href fallback)
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton tooltip={item.title} asChild>
-                          <Link href={item.url ?? "#"}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
+          <CollapsibleContent>
+            <SidebarMenuSub>
+              {item.items.map((subItem) => (
+                <SidebarMenuSubItem key={subItem.title}>
+                  <SidebarMenuSubButton
+                    asChild
+                    isActive={pathname === subItem.url}
+                  >
+                    <Link href={subItem.url}>
+                      <span>{subItem.title}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+
+                  {subItem.badge && (
+                    <SidebarMenuBadge>{subItem.badge}</SidebarMenuBadge>
+                  )}
+                </SidebarMenuSubItem>
+              ))}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        </SidebarMenuItem>
+      </Collapsible>
+    );
+  }
+
+  // Standard Menu Item
+  return (
+    <SidebarMenuItem key={item.title}>
+      <SidebarMenuButton
+        tooltip={item.title}
+        isActive={pathname.startsWith(item.url ?? "")}
+        asChild
+      >
+        <Link href={item.url ?? "#"}>
+          <item.icon className="h-4 w-4" />
+          <span>{item.title}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+})}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>

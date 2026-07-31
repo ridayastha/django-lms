@@ -13,7 +13,7 @@ export default function StudentLayout({
       <AppSidebar />
       <div className="flex flex-1 flex-col">
         <Navbar />
-        <main className="flex-1 overflow-y-auto bg-slate-50/50">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

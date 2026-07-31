@@ -1,13 +1,28 @@
+"use client";
 import StudentStats from "@/components/student/StudentStats";
 import TodoList from "@/components/TodoList";
 import StudentCourseProgressChart from "@/components/student/ProgressChart";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { DynamicBreadcrumb } from "@/components/DynamicBreadCrumb";
 
 export default function StudentDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div>
+          <DynamicBreadcrumb/>
+      </div>
+      <div>
         <h1 className="text-3xl font-bold">Welcome back, Student!</h1>
-        <p className="text-muted-foreground">Keep up the great work. You're almost done with your current course.</p>
+        <p className="text-muted-foreground">
+          Keep up the great work. You're almost done with your current course.
+        </p>
       </div>
 
       {/* Stats & Todo Section */}
