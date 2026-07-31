@@ -50,7 +50,6 @@ import {
 } from "@/components/ui/collapsible";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-// 1. Explicit TypeScript Interfaces
 interface SubNavItem {
   title: string;
   url: string;
@@ -59,7 +58,7 @@ interface SubNavItem {
 
 interface NavItem {
   title: string;
-  url?: string; // Optional because collapsible parent items don't have a url
+  url?: string;
   icon: LucideIcon;
   isCollapsible?: boolean;
   defaultOpen?: boolean;
@@ -71,7 +70,6 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// 2. Strongly Typed Navigation Configuration
 const studentNavGroups: NavGroup[] = [
   {
     label: "Overview",
@@ -88,7 +86,7 @@ const studentNavGroups: NavGroup[] = [
       },
       {
         title: "Categories",
-        url: "students/categories",
+        url: "/students/categories", // Added leading slash
         icon: Grid,
       },
     ],
@@ -100,11 +98,11 @@ const studentNavGroups: NavGroup[] = [
         title: "My Courses",
         icon: BookOpen,
         isCollapsible: true,
-        defaultOpen: true,
+        defaultOpen: false, // Changed to false so it doesn't stay open when not active
         items: [
           {
             title: "Enrolled Courses",
-            url: "/students/courses",
+            url: "/students/enrolled-courses", // Changed from /students/courses to avoid conflict
             badge: "4",
           },
           {
@@ -145,6 +143,13 @@ const studentNavGroups: NavGroup[] = [
 export default function StudentSidebar() {
   const pathname = usePathname();
 
+  // Helper function to check if a route is active
+  const isItemActive = (url?: string) => {
+    if (!url) return false;
+    if (url === "/students") return pathname === "/students"; // Strict match for root dashboard
+    return pathname === url || pathname.startsWith(`${url}/`);
+  };
+
   return (
     <TooltipProvider>
       <Sidebar collapsible="icon">
@@ -154,7 +159,7 @@ export default function StudentSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <Link href="/students">
-                  <div className="flex items-center justify-center  bg-primary text-primary-foreground p-1.5">
+                  <div className="flex items-center justify-center bg-primary text-primary-foreground p-1.5">
                     <GraduationCap className="h-5 w-5" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
@@ -179,71 +184,73 @@ export default function StudentSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {group.items.map((item) => {
-  // Check if any child route is active
-  const isParentActive =
-    item.items?.some((subItem) => pathname.startsWith(subItem.url)) ?? false;
+                    // Check if any sub-item strictly matches current pathname
+                    const isParentActive =
+                      item.items?.some((subItem) => pathname === subItem.url) ?? false;
 
-  // Collapsible Menu
-  if (item.isCollapsible && item.items) {
-    return (
-      <Collapsible
-        key={item.title}
-        defaultOpen={item.defaultOpen || isParentActive}
-        className="group/collapsible"
-      >
-        <SidebarMenuItem>
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton
-              tooltip={item.title}
-              isActive={isParentActive}
-            >
-              <item.icon className="h-4 w-4" />
-              <span>{item.title}</span>
-              <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-            </SidebarMenuButton>
-          </CollapsibleTrigger>
+                    // Collapsible Menu
+                    if (item.isCollapsible && item.items) {
+                      return (
+                        <Collapsible
+                          key={item.title}
+                          defaultOpen={item.defaultOpen || isParentActive}
+                          className="group/collapsible"
+                        >
+                          <SidebarMenuItem>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuButton
+                                tooltip={item.title}
+                                isActive={isParentActive}
+                              >
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                                <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                              </SidebarMenuButton>
+                            </CollapsibleTrigger>
 
-          <CollapsibleContent>
-            <SidebarMenuSub>
-              {item.items.map((subItem) => (
-                <SidebarMenuSubItem key={subItem.title}>
-                  <SidebarMenuSubButton
-                    asChild
-                    isActive={pathname === subItem.url}
-                  >
-                    <Link href={subItem.url}>
-                      <span>{subItem.title}</span>
-                    </Link>
-                  </SidebarMenuSubButton>
+                            <CollapsibleContent>
+                              <SidebarMenuSub>
+                                {item.items.map((subItem) => (
+                                  <SidebarMenuSubItem key={subItem.title}>
+                                    <SidebarMenuSubButton
+                                      asChild
+                                      isActive={pathname === subItem.url}
+                                    >
+                                      <Link href={subItem.url}>
+                                        <span>{subItem.title}</span>
+                                      </Link>
+                                    </SidebarMenuSubButton>
 
-                  {subItem.badge && (
-                    <SidebarMenuBadge>{subItem.badge}</SidebarMenuBadge>
-                  )}
-                </SidebarMenuSubItem>
-              ))}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </SidebarMenuItem>
-      </Collapsible>
-    );
-  }
+                                    {subItem.badge && (
+                                      <SidebarMenuBadge>{subItem.badge}</SidebarMenuBadge>
+                                    )}
+                                  </SidebarMenuSubItem>
+                                ))}
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                          </SidebarMenuItem>
+                        </Collapsible>
+                      );
+                    }
 
-  // Standard Menu Item
-  return (
-    <SidebarMenuItem key={item.title}>
-      <SidebarMenuButton
-        tooltip={item.title}
-        isActive={pathname.startsWith(item.url ?? "")}
-        asChild
-      >
-        <Link href={item.url ?? "#"}>
-          <item.icon className="h-4 w-4" />
-          <span>{item.title}</span>
-        </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-})}
+                    // Standard Menu Item
+                    const active = isItemActive(item.url);
+
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          tooltip={item.title}
+                          isActive={active}
+                          asChild
+                        >
+                          <Link href={item.url ?? "#"}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -277,12 +284,12 @@ export default function StudentSidebar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link href="/student/settings">
+                    <Link href="/students/settings">
                       <User2 className="mr-2 h-4 w-4" /> Account Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/student/certificates">
+                    <Link href="/students/certificates">
                       <Award className="mr-2 h-4 w-4" /> My Certificates
                     </Link>
                   </DropdownMenuItem>

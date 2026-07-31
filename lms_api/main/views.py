@@ -69,6 +69,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.filter(is_published=True)
+    lookup_field = "slug" 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['category', 'level']
     search_fields = ['title', 'description']
