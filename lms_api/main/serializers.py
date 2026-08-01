@@ -1,3 +1,4 @@
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from .models import (
     User, TeacherProfile, StudentProfile, Category, Course,
@@ -162,3 +163,31 @@ class CertificateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Certificate
         fields = ['certificate_id', 'student_name', 'course_title', 'issued_at']
+
+
+# ==========================================
+# AUTHENTICATION SERIALIZERS
+# ==========================================
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Returns JWT tokens together with the authenticated user's information.
+    """
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Optional custom JWT claims
+        token["username"] = user.username
+        token["email"] = user.email
+        token["role"] = user.role
+
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+
+        data["user"] = UserSerializer(self.user).data
+
+        return data

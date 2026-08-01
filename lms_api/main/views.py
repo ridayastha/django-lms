@@ -1,3 +1,8 @@
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from .serializers import CustomTokenObtainPairSerializer
 from rest_framework import viewsets, permissions, status, generics, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -40,6 +45,50 @@ class RegisterView(APIView):
 
             return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# ==========================================
+# LOGIN (JWT)
+# ==========================================
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+# ==========================================
+# CURRENT USER
+# ==========================================
+
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
+
+# ==========================================
+# LOGOUT
+# ==========================================
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(
+                {"detail": "Logged out successfully."},
+                status=status.HTTP_205_RESET_CONTENT,
+            )
+
+        except Exception:
+            return Response(
+                {"detail": "Invalid refresh token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
 
 # ==========================================
 # 2. PROFILE MANAGEMENT (Retrieve & Update)
