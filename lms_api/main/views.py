@@ -129,7 +129,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         return CourseListSerializer
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def enroll(self, request, pk=None):
+    def enroll(self, request, *args, **kwargs):
         course = self.get_object()
         student_profile = getattr(request.user, 'student_profile', None)
         
