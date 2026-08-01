@@ -147,13 +147,15 @@ export default async function CourseDetailPage({ params }: PageProps) {
                                 {lesson.order}. {lesson.title}
                               </span>
                               {lesson.is_preview && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[10px] font-semibold"
-                                >
-                                  <CheckCircle2 className="w-2.5 h-2.5 mr-1 text-primary" /> Free Preview
-                                </Badge>
-                              )}
+  <Button asChild size="sm" variant="outline">
+    <Link
+      href={`/students/courses/${course.slug}/preview/${lesson.id}`}
+    >
+      <PlayCircle className="mr-2 h-4 w-4" />
+      Preview
+    </Link>
+  </Button>
+)}
                             </div>
 
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
