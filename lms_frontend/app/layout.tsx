@@ -1,5 +1,5 @@
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google"
-
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ export default async function RootLayout({
       className={cn("antialiased", fontSans.variable, "font-mono", jetbrainsMono.variable)}
     >
       <body>
+        <AuthProvider>
         <ThemeProvider  attribute="class"
             defaultTheme="system"
             enableSystem
@@ -43,6 +44,7 @@ export default async function RootLayout({
           </main>
           </SidebarProvider>
         </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

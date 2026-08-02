@@ -1,6 +1,7 @@
 import StudentSidebar from "@/components/student/StudentSidebar";
 import StudentNavbar from "@/components/student/StudentNavbar";
 import Navbar from "@/components/teacher/Navbar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 export default function StudentLayout({
   children,
@@ -8,6 +9,7 @@ export default function StudentLayout({
   children: React.ReactNode;
 }) {
   return (
+    <ProtectedRoute>
     <div className="flex h-screen">
       <StudentSidebar />
       <div className="flex flex-1 flex-col">
@@ -17,5 +19,6 @@ export default function StudentLayout({
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

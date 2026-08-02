@@ -1,4 +1,6 @@
 "use client"
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   CreditCardIcon,
   LogOutIcon,
@@ -30,6 +32,8 @@ import { SidebarTrigger, useSidebar } from "../ui/sidebar";
 export default function Navbar() {
   const { theme, setTheme } = useTheme()
   const {toggleSidebar} = useSidebar()
+  const router = useRouter();
+  const { logout } = useAuth();
 
   return (
     <nav className="flex items-center justify-between p-4">
@@ -93,7 +97,7 @@ export default function Navbar() {
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem variant="destructive">
+            <DropdownMenuItem variant="destructive" onClick={logout}>
               <LogOutIcon className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>
