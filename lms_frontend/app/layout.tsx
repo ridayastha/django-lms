@@ -7,6 +7,7 @@ import AppSidebar from "@/components/teacher/AppSidebar";
 import Navbar from "@/components/teacher/Navbar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
+import { Toaster } from "sonner";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -43,6 +44,8 @@ export default async function RootLayout({
             <div className="px-4">{children}</div>
           </main>
           </SidebarProvider>
+          {/* Global toast notifications */}
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
         </AuthProvider>
       </body>
