@@ -31,18 +31,7 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            password = request.data.get('password')
-            if password:
-                user.set_password(password)
-                user.save()
-
-            role = request.data.get('role')
-            if role == "TEACHER":
-                TeacherProfile.objects.get_or_create(user=user)
-            else:
-                StudentProfile.objects.get_or_create(user=user)
-
+            serializer.save()
             return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -141,6 +130,18 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Already enrolled."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"detail": "Enrolled successfully"}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True,methods=["get"],permission_classes=[permissions.IsAuthenticated],)
+    def enrollment(self, request, *args, **kwargs):
+        course = self.get_object()
+        student_profile = getattr(request.user, "student_profile", None)
+
+        if not student_profile:
+            return Response({"enrolled": False},status=status.HTTP_200_OK,)
+
+        enrolled = Enrollment.objects.filter(student=student_profile,course=course,).exists()
+
+        return Response({"enrolled": enrolled},status=status.HTTP_200_OK,)
 
 # ==========================================
 # 4. TEACHER MANAGEMENT VIEWS

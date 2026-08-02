@@ -7,6 +7,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { PlayCircle, Clock, BookOpen, User, SignalHigh, CheckCircle2, ArrowLeft } from 'lucide-react';
+import EnrollButton from "@/components/student/courses/EnrollButton";
+import LessonActionButton from '@/components/student/courses/LessonActionButton';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -95,9 +97,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
               <span className="text-2xl font-bold text-foreground">
                 {Number(course.price) > 0 ? `$${course.price}` : 'Free'}
               </span>
-              <Button size="lg" className="font-semibold shadow-sm">
-                Enroll Now
-              </Button>
+              <EnrollButton slug={course.slug} />
             </div>
           </div>
         </CardHeader>
@@ -146,16 +146,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
                               <span className="font-medium text-sm text-foreground">
                                 {lesson.order}. {lesson.title}
                               </span>
-                              {lesson.is_preview && (
-  <Button asChild size="sm" variant="outline">
-    <Link
-      href={`/students/courses/${course.slug}/preview/${lesson.id}`}
-    >
-      <PlayCircle className="mr-2 h-4 w-4" />
-      Preview
-    </Link>
-  </Button>
-)}
+                              <LessonActionButton slug={course.slug} lessonId={lesson.id} isPreview={lesson.is_preview}/>
                             </div>
 
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

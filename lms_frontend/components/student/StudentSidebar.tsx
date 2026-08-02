@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -142,6 +143,7 @@ const studentNavGroups: NavGroup[] = [
 
 export default function StudentSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   // Helper function to check if a route is active
   const isItemActive = (url?: string) => {
@@ -264,19 +266,25 @@ export default function StudentSidebar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton size="lg">
-                    <Image
-                      src="/profile.jpg"
-                      alt="Student Profile"
-                      width={28}
-                      height={28}
-                      className="rounded-full object-cover"
-                    />
+                    {user?.profile_picture ? (
+  <Image
+    src={user.profile_picture}
+    alt={user.username}
+    width={28}
+    height={28}
+    className="rounded-full object-cover"
+  />
+) : (
+  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
+    {(user?.username ?? "?")[0].toUpperCase()}
+  </div>
+)}
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        Hridaya Shrestha
+                        {user?.first_name || user?.username}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        Student Account
+                        {user?.email}
                       </span>
                     </div>
                     <ChevronUp className="ml-auto h-4 w-4" />
@@ -294,7 +302,7 @@ export default function StudentSidebar() {
                     </Link>
                   </DropdownMenuItem>
                   <SidebarSeparator />
-                  <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" /> Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
