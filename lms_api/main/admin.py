@@ -1,23 +1,95 @@
 from django.contrib import admin
-from . import models
+from django.contrib.auth.admin import UserAdmin
 
-# Register the Custom User and Profiles
-admin.site.register(models.User)
-admin.site.register(models.TeacherProfile)
-admin.site.register(models.StudentProfile)
+from .models import (
+    User,
+    TeacherProfile,
+    StudentProfile,
+    Category,
+    Course,
+    Chapter,
+    Lesson,
+    LessonAttachment,
+    Enrollment,
+    LessonProgress,
+    Quiz,
+    Question,
+    Choice,
+    QuizAttempt,
+    CourseReview,
+    Certificate,
+)
 
-# Register Course related models
-admin.site.register(models.Category)
-admin.site.register(models.Course)
-admin.site.register(models.Chapter)
-admin.site.register(models.Lesson)
 
-# Register Enrollment and Progress
-admin.site.register(models.Enrollment)
-admin.site.register(models.LessonProgress)
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    model = User
 
-# Register Quizzes and Reviews
-admin.site.register(models.Quiz)
-admin.site.register(models.Question)
-admin.site.register(models.Choice)
-admin.site.register(models.CourseReview)
+    list_display = (
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "role",
+        "is_staff",
+        "is_active",
+    )
+
+    list_filter = (
+        "role",
+        "is_staff",
+        "is_superuser",
+        "is_active",
+    )
+
+    fieldsets = UserAdmin.fieldsets + (
+        (
+            "Additional Information",
+            {
+                "fields": (
+                    "role",
+                    "bio",
+                    "profile_picture",
+                    "phone_number",
+                )
+            },
+        ),
+    )
+
+    add_fieldsets = UserAdmin.add_fieldsets + (
+        (
+            "Additional Information",
+            {
+                "fields": (
+                    "email",
+                    "first_name",
+                    "last_name",
+                    "role",
+                    "bio",
+                    "profile_picture",
+                    "phone_number",
+                )
+            },
+        ),
+    )
+
+
+admin.site.register(TeacherProfile)
+admin.site.register(StudentProfile)
+
+admin.site.register(Category)
+admin.site.register(Course)
+admin.site.register(Chapter)
+admin.site.register(Lesson)
+admin.site.register(LessonAttachment)
+
+admin.site.register(Enrollment)
+admin.site.register(LessonProgress)
+
+admin.site.register(Quiz)
+admin.site.register(Question)
+admin.site.register(Choice)
+admin.site.register(QuizAttempt)
+
+admin.site.register(CourseReview)
+admin.site.register(Certificate)
