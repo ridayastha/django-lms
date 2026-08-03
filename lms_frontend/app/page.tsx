@@ -108,7 +108,7 @@ export default function LandingPage() {
                 Sign In
               </Button>
             </Link>
-            <Link href="/login">
+            <Link href="/register">
               <Button size="sm">Get Started</Button>
             </Link>
           </div>

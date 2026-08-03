@@ -4,6 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,51 +26,94 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
+
 export default function LoginPage() {
 
   const router = useRouter();
   const { login } = useAuth();
-
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
 
-    setLoading(true);
+  async function handleLogin(formData: LoginForm) {
+  if (loading) return;
 
-    try {
-      const { data } = await api.post("/token/", {
-        username,
-        password,
-      });
+  clearErrors();
+  setLoginError("");
 
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
+  setLoading(true);
 
-      login(data.user);
+  try {
+    const { data } = await api.post("/token/", formData);
 
-      toast.success("Logged in successfully!");
+    localStorage.setItem("access", data.access);
+    localStorage.setItem("refresh", data.refresh);
 
-      setTimeout(() => {
-        if (data.user.role === "TEACHER") {
-          router.push("/teachers");
+    login(data.user);
+
+    toast.success("Logged in successfully!");
+
+    router.push(
+      data.user.role === "TEACHER"
+        ? "/teachers"
+        : "/students"
+    );
+ } catch (error: any) {
+  const backendErrors = error.response?.data;
+
+  if (backendErrors) {
+    const formFields: (keyof LoginForm)[] = [
+      "username",
+      "password",
+    ];
+
+    Object.entries(backendErrors).forEach(
+      ([field, messages]) => {
+        const message = Array.isArray(messages)
+          ? messages[0]
+          : String(messages);
+
+        if (formFields.includes(field as keyof LoginForm)) {
+          setError(field as keyof LoginForm, {
+            type: "server",
+            message,
+          });
+        } else if (field === "detail" || field === "non_field_errors") {
+          setLoginError(message);
         } else {
-          router.push("/students");
+          toast.error(message);
         }
-      }, 800);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.detail ??
-          "Invalid username or password."
-      );
-    } finally {
-      setLoading(false);
-    }
+      }
+    );
+  } else {
+    toast.error("Login failed.");
   }
+}
+finally {
+  setLoading(false);
+}
+}
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4">
@@ -83,7 +130,7 @@ export default function LoginPage() {
 
         <CardContent>
           <form
-            onSubmit={handleLogin}
+            onSubmit={handleSubmit(handleLogin)}
             className="space-y-5"
           >
             <div className="space-y-2">
@@ -92,14 +139,16 @@ export default function LoginPage() {
               </Label>
 
               <Input
-                id="username"
+                id="username" autoComplete="username" disabled={loading}
                 placeholder="Enter your username"
-                value={username}
-                onChange={(e) =>
-                  setUsername(e.target.value)
-                }
-                required
+                {...register("username")}
               />
+
+              {errors.username && (
+                <p className="text-sm text-destructive">
+                  {errors.username.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -110,21 +159,19 @@ export default function LoginPage() {
               <div className="relative">
                 <Input
                   id="password"
+                  autoComplete="current-password" 
                   type={
                     showPassword
                       ? "text"
                       : "password"
                   }
                   placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
-                  }
-                  required
+                  {...register("password")} disabled={loading}
                 />
 
                 <button
                   type="button"
+                  disabled={loading}
                   onClick={() =>
                     setShowPassword(!showPassword)
                   }
@@ -137,6 +184,18 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+
+              {errors.password && (
+                <p className="text-sm text-destructive">
+                  {errors.password.message}
+                </p>
+              )}
+
+              {loginError && (
+  <p className="text-sm text-destructive">
+    {loginError}
+  </p>
+)}
             </div>
 
             <Button

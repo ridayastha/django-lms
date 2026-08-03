@@ -45,7 +45,7 @@ export default async function RootLayout({
           </main>
           </SidebarProvider>
           {/* Global toast notifications */}
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="bottom-right" />
         </ThemeProvider>
         </AuthProvider>
       </body>
