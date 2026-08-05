@@ -50,7 +50,8 @@ class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        serializer = UserSerializer(request.user, context={'request': request})
+        return Response(serializer.data)
 
 
 # ==========================================
@@ -89,6 +90,11 @@ class TeacherProfileDetail(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return getattr(self.request.user, 'teacher_profile', None)
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
 
 class StudentProfileDetail(generics.RetrieveUpdateAPIView):
     serializer_class = StudentProfileSerializer
@@ -96,6 +102,11 @@ class StudentProfileDetail(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return getattr(self.request.user, 'student_profile', None)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
 
 # ==========================================
 # 3. PUBLIC VIEWS (Categories & Courses)

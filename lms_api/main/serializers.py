@@ -12,20 +12,34 @@ from .models import (
 # ==========================================
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email','password', 'first_name', 'last_name', 'role', 'bio', 'profile_picture', 'phone_number']
-        read_only_fields = ['id']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = [
+            "id",
+            "username",
+            "email",
+            "password",
+            "first_name",
+            "last_name",
+            "role",
+            "bio",
+            "profile_picture",
+            "phone_number",
+        ]
+        extra_kwargs = {"password": {"write_only": True}}
 
-    def create(self, validated_data):
-        password = validated_data.pop("password")
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
+    def get_profile_picture(self, obj):
+        request = self.context.get("request")
 
-        return user
+        if obj.profile_picture:
+            if request:
+                return request.build_absolute_uri(obj.profile_picture.url)
+            return obj.profile_picture.url
 
+        return None
+    
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -196,6 +210,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
 
-        data["user"] = UserSerializer(self.user).data
+        # 1. Grab the current request from the serializer context
+        request = self.context.get('request')
+
+        # 2. Pass the request context down into the UserSerializer
+        data["user"] = UserSerializer(self.user, context={'request': request}).data
 
         return data
