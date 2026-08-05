@@ -219,6 +219,14 @@ class LessonViewSet(viewsets.ModelViewSet):
         progress.is_completed = True
         progress.completed_at = timezone.now()
         progress.save()
+
+        enrollment = Enrollment.objects.filter(student=student_profile, course=lesson.chapter.course).first()
+        if enrollment:
+            total = Lesson.objects.filter(chapter__course=lesson.chapter.course).count()
+            completed = LessonProgress.objects.filter(student=student_profile, lesson__chapter__course=lesson.chapter.course, is_completed=True).count()
+            enrollment.is_completed = completed == total and total > 0
+            enrollment.save()
+
         return Response({"status": "Complete"})
 
 # ==========================================

@@ -132,6 +132,7 @@ class Enrollment(models.Model):
     student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="enrollments")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
     enrolled_at = models.DateTimeField(auto_now_add=True)
+    last_accessed = models.DateTimeField(auto_now=True)
     is_completed = models.BooleanField(default=False)
 
     class Meta:

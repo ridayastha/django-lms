@@ -108,7 +108,7 @@ const CardList = ({ title }: CardListProps) => {
               >
                 <div className="relative h-14 w-14 overflow-hidden rounded-lg">
                   <Image
-                    src={course.image}
+                    src={course.image || "/placeholders/default-image.svg"}
                     alt={course.title}
                     fill
                     sizes="56px"
@@ -138,7 +138,7 @@ const CardList = ({ title }: CardListProps) => {
               >
                 <div className="relative h-12 w-12 overflow-hidden rounded-full">
                   <Image
-                    src={student.image}
+                    src={student.image || "/placeholders/default-image.svg"}
                     alt={student.student}
                     fill
                     sizes="48px"

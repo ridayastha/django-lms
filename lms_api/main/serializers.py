@@ -126,10 +126,49 @@ class LessonProgressSerializer(serializers.ModelSerializer):
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CourseListSerializer(read_only=True)
     course_id = serializers.PrimaryKeyRelatedField(queryset=Course.objects.all(), source='course', write_only=True)
+    total_lessons = serializers.SerializerMethodField()
+    completed_lessons = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()
+    next_lesson = serializers.SerializerMethodField()
+    completed_lesson_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = Enrollment
-        fields = ['id', 'student', 'course', 'course_id', 'enrolled_at', 'is_completed']
+        fields = ['id', 'student', 'course', 'course_id', 'enrolled_at', 'is_completed', 'total_lessons', 'completed_lessons', "completed_lesson_ids",'progress', 'next_lesson', 'last_accessed']
+
+    def get_total_lessons(self, obj):
+        return Lesson.objects.filter(chapter__course=obj.course).count()
+
+    def get_completed_lessons(self, obj):
+        return LessonProgress.objects.filter(student=obj.student, lesson__chapter__course=obj.course, is_completed=True).count()
+
+    def get_completed_lesson_ids(self, obj):
+        return list(LessonProgress.objects.filter(
+            student=obj.student,
+            lesson__chapter__course=obj.course,
+            is_completed=True,
+            ).values_list("lesson_id", flat=True)
+        )
+
+    def get_progress(self, obj):
+        total = self.get_total_lessons(obj)
+        completed = self.get_completed_lessons(obj)
+        if total == 0:
+            return 0
+        completed = self.get_completed_lessons(obj)
+
+        return round((completed / total) * 100)
+
+    def get_next_lesson(self, obj):
+        completed_ids = LessonProgress.objects.filter(student=obj.student,lesson__chapter__course=obj.course,is_completed=True,).values_list("lesson_id", flat=True)
+
+        lesson = (Lesson.objects.filter(chapter__course=obj.course).exclude(id__in=completed_ids).order_by("chapter__order", "order").first())
+        if lesson:
+            return {
+                "id": lesson.id,
+                "title": lesson.title,
+            }
+        return None
 
 
 # ==========================================

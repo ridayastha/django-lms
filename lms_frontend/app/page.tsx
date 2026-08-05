@@ -250,7 +250,7 @@ export default function LandingPage() {
                   <div>
                     <div className="relative h-48 w-full overflow-hidden bg-slate-200">
                       <img
-                        src={course.image}
+                        src={course.image || "/placeholders/default-image.svg"}
                         alt={course.title}
                         className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                       />

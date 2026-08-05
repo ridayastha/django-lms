@@ -1,26 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Lesson } from "@/types/lms";
 
 interface LessonNavigationProps {
   slug: string;
+  currentLessonId: number;
+
   previousLesson: Lesson | null;
   nextLesson: Lesson | null;
-  onMarkComplete?: () => void;
+
+  completed: boolean;
+  loading?: boolean;
+
+  onMarkComplete: () => void;
 }
 
 export default function LessonNavigation({
   slug,
   previousLesson,
   nextLesson,
+  completed,
+  loading = false,
   onMarkComplete,
 }: LessonNavigationProps) {
   return (
     <div className="border-t bg-background px-6 py-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+      {/* Previous */}
       <div>
         {previousLesson ? (
           <Button variant="outline" asChild>
@@ -37,33 +51,27 @@ export default function LessonNavigation({
         )}
       </div>
 
+      {/* Mark Complete */}
       <Button
-        onClick={onMarkComplete}
         size="lg"
-        className="gap-2"
+        onClick={onMarkComplete}
+        disabled={completed || loading}
+        className={
+          completed
+            ? "bg-green-600 hover:bg-green-600 text-white"
+            : ""
+        }
       >
-        <CheckCircle2 className="h-5 w-5" />
-        Mark Complete
+        <CheckCircle2 className="mr-2 h-4 w-4" />
+
+        {loading
+          ? "Saving..."
+          : completed
+          ? "Completed"
+          : "Mark Complete"}
       </Button>
 
-      {/* once authenticated is added
-      <Button
-  onClick={markLessonComplete}
-  disabled={completed}
->
-  {completed ? (
-    <>
-      <CheckCircle2 className="mr-2 h-4 w-4" />
-      Completed
-    </>
-  ) : (
-    <>
-      <CheckCircle2 className="mr-2 h-4 w-4" />
-      Mark as Complete
-    </>
-  )}
-</Button> */}
-
+      {/* Next */}
       <div>
         {nextLesson ? (
           <Button variant="outline" asChild>
@@ -79,6 +87,7 @@ export default function LessonNavigation({
           </Button>
         )}
       </div>
+
     </div>
   );
 }

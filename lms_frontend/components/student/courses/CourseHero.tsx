@@ -18,11 +18,13 @@ export default function CourseHero({ course }: Props) {
         <div className="relative h-72">
           <Image
             src={
-              course.featured_img ??
-              "https://placehold.co/600x400?text=Course"
+              course.featured_img ||
+              "/placeholders/default-image.svg"
             }
             alt={course.title}
             fill
+            loading="eager"
+            priority
             className="object-cover"
             unoptimized
           />

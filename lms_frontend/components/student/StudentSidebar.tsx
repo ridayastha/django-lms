@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { LucideIcon } from "lucide-react";
 import {
   Award,
@@ -20,6 +21,7 @@ import {
   GraduationCap,
   LogOut,
 } from "lucide-react";
+import api from "@/lib/axios";
 
 import {
   Sidebar,
@@ -85,11 +87,7 @@ const studentNavGroups: NavGroup[] = [
         url: "/students/courses",
         icon: Compass,
       },
-      {
-        title: "Categories",
-        url: "/students/categories", // Added leading slash
-        icon: Grid,
-      },
+      
     ],
   },
   {
@@ -103,8 +101,7 @@ const studentNavGroups: NavGroup[] = [
         items: [
           {
             title: "Enrolled Courses",
-            url: "/students/enrolled-courses", // Changed from /students/courses to avoid conflict
-            badge: "4",
+            url: "/students/enrolled-courses",
           },
           {
             title: "Completed Courses",
@@ -144,6 +141,21 @@ const studentNavGroups: NavGroup[] = [
 export default function StudentSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [enrolledCount, setEnrolledCount] = useState(0);
+
+  useEffect(() => {
+    async function loadEnrollments() {
+      try {
+        const response = await api.get("/enrollments/");
+        setEnrolledCount(Array.isArray(response.data) ? response.data.length : 0);
+      } catch (error) {
+        console.error("Failed to load enrolled courses count", error);
+        setEnrolledCount(0);
+      }
+    }
+
+    loadEnrollments();
+  }, []);
 
   // Helper function to check if a route is active
   const isItemActive = (url?: string) => {
@@ -220,12 +232,17 @@ export default function StudentSidebar() {
                                     >
                                       <Link href={subItem.url}>
                                         <span>{subItem.title}</span>
+                                        {(subItem.url === "/students/enrolled-courses" && enrolledCount > 0) ? (
+                                          <SidebarMenuBadge>
+                                            {enrolledCount.toString()}
+                                          </SidebarMenuBadge>
+                                        ) : subItem.badge ? (
+                                          <SidebarMenuBadge>
+                                            {subItem.badge}
+                                          </SidebarMenuBadge>
+                                        ) : null}
                                       </Link>
                                     </SidebarMenuSubButton>
-
-                                    {subItem.badge && (
-                                      <SidebarMenuBadge>{subItem.badge}</SidebarMenuBadge>
-                                    )}
                                   </SidebarMenuSubItem>
                                 ))}
                               </SidebarMenuSub>

@@ -17,7 +17,7 @@ interface CourseCardProps {
 
 export default function CourseCard({ course }: CourseCardProps) {
   const image =
-    course.featured_img || "https://placehold.co/600x400?text=Course";
+    course.featured_img || "/placeholders/default-image.svg";
 
   const price =
     Number(course.price) > 0 ? `$${course.price}` : "Free";
@@ -30,6 +30,7 @@ export default function CourseCard({ course }: CourseCardProps) {
           src={image}
           alt={course.title}
           fill
+          loading="eager"
           className="object-cover"
           unoptimized
         />

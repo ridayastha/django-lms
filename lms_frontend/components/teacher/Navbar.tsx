@@ -71,7 +71,7 @@ export default function Navbar() {
             <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Open user menu">
             <Avatar className="cursor-pointer">
               <AvatarImage
-                src={user?.profile_picture ?? undefined}
+                src={user?.profile_picture || undefined}
                 alt={user?.username ?? "User"}
               />
               <AvatarFallback>

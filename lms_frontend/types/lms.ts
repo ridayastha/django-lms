@@ -83,3 +83,21 @@ export interface CourseDetail {
   created_at: string;
   updated_at: string;
 }
+
+export interface Enrollment {
+  id: number;
+  course: CourseListItem;
+
+  total_lessons: number;
+  completed_lessons: number;
+  progress: number;
+
+  completed_lesson_ids: number[];
+
+  next_lesson: {
+    id: number;
+    title: string;
+  } | null;
+
+  is_completed: boolean;
+}

@@ -25,13 +25,25 @@ api.interceptors.response.use(
 
   async (error) => {
     const originalRequest = error.config;
+    const isAuthRequest =
+      originalRequest.url?.includes("/token/") ||
+      originalRequest.url?.includes("/token/refresh/");
 
-  const isAuthRequest =originalRequest.url?.includes("/token/") || originalRequest.url?.includes("/token/refresh/");
-  if (error.response?.status === 401 && originalRequest._retry && isAuthRequest) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthRequest
+    ) {
       originalRequest._retry = true;
 
       try {
         const refresh = localStorage.getItem("refresh");
+
+        if (!refresh) {
+          localStorage.clear();
+          window.location.href = "/login";
+          return Promise.reject(error);
+        }
 
         const response = await axios.post(
           "http://127.0.0.1:8000/api/token/refresh/",
@@ -44,17 +56,12 @@ api.interceptors.response.use(
 
         localStorage.setItem("access", newAccess);
 
-        originalRequest.headers.Authorization =
-          `Bearer ${newAccess}`;
+        originalRequest.headers.Authorization = `Bearer ${newAccess}`;
 
         return api(originalRequest);
-
       } catch (err) {
-
         localStorage.clear();
-
         window.location.href = "/login";
-
         return Promise.reject(err);
       }
     }

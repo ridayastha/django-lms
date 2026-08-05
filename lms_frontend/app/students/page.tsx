@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import StudentStats from "@/components/student/StudentStats";
 import TodoList from "@/components/TodoList";
 import StudentCourseProgressChart from "@/components/student/ProgressChart";
 import { DynamicBreadcrumb } from "@/components/DynamicBreadCrumb";
+import { getEnrolledCourses } from "@/lib/api";
+import { Enrollment } from "@/types/lms";
 
 // Shadcn UI Components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,34 +33,47 @@ import {
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(true);
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
 
-  // Mock state - Replace with your backend API hook or context
-  const lastActiveCourse = {
-    id: "course_101",
-    title: "Mastering Fullstack Web Development & Microservices",
-    currentLesson: "Module 4: Stripe Webhook Integration & GitHub OAuth",
-    progress: 72,
-    lessonId: "lesson_4_2",
-  };
+  useEffect(() => {
+    async function loadEnrollments() {
+      try {
+        const data = await getEnrolledCourses();
+        setEnrollments(data);
+      } catch (error) {
+        console.error("Failed to load enrolled courses", error);
+        setEnrollmentError("Unable to load your enrolled courses.");
+      } finally {
+        setLoadingEnrollments(false);
+      }
+    }
 
-  const activeCourses = [
-    {
-      id: "course_101",
-      title: "Mastering Fullstack Web Development & Microservices",
-      instructor: "Creator / Portfolio Admin",
-      progress: 72,
-      completedLessons: 18,
-      totalLessons: 25,
-    },
-    {
-      id: "course_102",
-      title: "Building SaaS Apps with Django & React",
-      instructor: "Creator / Portfolio Admin",
-      progress: 35,
-      completedLessons: 7,
-      totalLessons: 20,
-    },
-  ];
+    loadEnrollments();
+  }, []);
+
+  const lastActiveEnrollment = enrollments[0] ?? null;
+  const lastActiveCourse = lastActiveEnrollment
+    ? {
+        title: lastActiveEnrollment.course.title,
+        slug: lastActiveEnrollment.course.slug,
+        currentLesson:
+          lastActiveEnrollment.next_lesson?.title ||
+          "Continue where you left off",
+        progress: lastActiveEnrollment.progress,
+        lessonId: lastActiveEnrollment.next_lesson?.id ?? null,
+      }
+    : null;
+
+  const activeCourses = enrollments.map((enrollment) => ({
+    id: enrollment.course.slug,
+    title: enrollment.course.title,
+    instructor: enrollment.course.teacher ?? "Unknown Instructor",
+    progress: enrollment.progress,
+    completedLessons: enrollment.completed_lessons,
+    totalLessons: enrollment.total_lessons,
+  }));
 
   const purchasedProducts = [
     {
@@ -111,7 +127,7 @@ export default function StudentDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">
-            <Link href="/explore">
+            <Link href="/students/courses">
               <BookOpen className="w-4 h-4 mr-2" /> Explore Courses
             </Link>
           </Button>
@@ -124,8 +140,37 @@ export default function StudentDashboard() {
       </div>
 
       {/* Hero CTA: Resume Learning */}
-      {lastActiveCourse && (
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-background">
+      {loadingEnrollments ? (
+        <Card className="border-primary/20 bg-muted/5">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold">Loading your enrolled courses...</h2>
+                <p className="text-sm text-muted-foreground">
+                  We are fetching your progress so you can jump back into learning.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : enrollmentError ? (
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold">Unable to load courses</h2>
+                <p className="text-sm text-destructive-foreground">
+                  {enrollmentError} Try refreshing or visit Explore Courses to enroll.
+                </p>
+              </div>
+              <Button asChild variant="outline" size="lg" className="gap-2 shadow-sm">
+                <Link href="/explore">Explore Courses</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : lastActiveCourse ? (
+        <Card className="border-primary/20 bg-linear-to-r from-primary/10 via-primary/5 to-background">
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="space-y-2 flex-1">
@@ -148,9 +193,31 @@ export default function StudentDashboard() {
               </div>
 
               <Button asChild size="lg" className="gap-2 shadow-sm">
-                <Link href={`/courses/${lastActiveCourse.id}/lessons/${lastActiveCourse.lessonId}`}>
+                <Link
+                  href={
+                    lastActiveCourse.lessonId !== null
+                      ? `/students/learn/${lastActiveCourse.slug}/${lastActiveCourse.lessonId}`
+                      : `/students/courses/${lastActiveCourse.slug}`
+                  }
+                >
                   Resume Lesson <ArrowRight className="w-4 h-4" />
                 </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-2 flex-1">
+                <h2 className="text-xl font-bold">You don’t have any active enrollments yet.</h2>
+                <p className="text-sm text-muted-foreground">
+                  Browse courses, enroll in a learning path, and return here to continue.
+                </p>
+              </div>
+              <Button asChild size="lg" className="gap-2 shadow-sm">
+                <Link href="/explore">Explore Courses</Link>
               </Button>
             </div>
           </CardContent>
@@ -158,7 +225,7 @@ export default function StudentDashboard() {
       )}
 
       {/* Global Student Metrics Component */}
-      <StudentStats />
+      <StudentStats enrollments={enrollments} />
 
       {/* Balanced 12-Column Grid Layout */}
       <div className="grid gap-6 lg:grid-cols-12">
@@ -172,7 +239,7 @@ export default function StudentDashboard() {
                 <CardDescription>Your active learning paths and completion rates</CardDescription>
               </div>
               <Button asChild variant="ghost" size="sm" className="gap-1 text-xs">
-                <Link href="/enrolled-courses">
+                <Link href="students/enrolled-courses">
                   View All <ArrowRight className="w-3 h-3" />
                 </Link>
               </Button>
