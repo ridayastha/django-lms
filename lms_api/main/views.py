@@ -238,10 +238,18 @@ class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        student = getattr(self.request.user, 'student_profile', None)
-        if student:
-            return Enrollment.objects.filter(student=student)
-        return Enrollment.objects.none()
+        student = getattr(self.request.user, "student_profile", None)
+
+        if not student:
+            return Enrollment.objects.none()
+
+        return (
+            Enrollment.objects
+            .filter(student=student)
+            .select_related("course")
+            .order_by("-last_accessed")
+        )
+    
 
 class CourseReviewViewSet(viewsets.ModelViewSet):
     queryset = CourseReview.objects.all()

@@ -330,7 +330,7 @@ export default function StudentDashboard() {
           </Card> */}
 
           {/* Analytics Chart Component */}
-          <StudentCourseProgressChart enrollments={enrollments} />
+          <StudentCourseProgressChart />
         </div>
 
         {/* RIGHT COLUMN: Productivity, Utilities, & Calendar (4 Cols) */}
