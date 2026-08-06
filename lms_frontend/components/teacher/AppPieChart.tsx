@@ -46,19 +46,19 @@ const MOCK_DATASETS = {
       { status: "IN_PROGRESS", students: 310, fill: "var(--color-IN_PROGRESS)" },
     ],
   },
-  quizOutcomes: {
-    title: "Quiz Attempts Pass vs Fail",
-    labelKey: "Total Attempts",
-    dataKey: "attempts",
-    nameKey: "outcome",
+  completionStatus: {
+    title: "Course Completion Status",
+    labelKey: "Total Students",
+    dataKey: "students",
+    nameKey: "status",
     config: {
-      attempts: { label: "Attempts" },
-      PASSED: { label: "Passed", color: "var(--chart-1)" },
-      FAILED: { label: "Failed", color: "var(--chart-5)" },
+      students: { label: "Students" },
+      COMPLETED: { label: "Completed", color: "var(--chart-1)" },
+      IN_PROGRESS: { label: "In Progress", color: "var(--chart-5)" },
     } satisfies ChartConfig,
     data: [
-      { outcome: "PASSED", attempts: 480, fill: "var(--color-PASSED)" },
-      { outcome: "FAILED", attempts: 95, fill: "var(--color-FAILED)" },
+      { status: "COMPLETED", students: 480, fill: "var(--color-COMPLETED)" },
+      { status: "IN_PROGRESS", students: 95, fill: "var(--color-IN_PROGRESS)" },
     ],
   },
 };
@@ -113,14 +113,14 @@ export default function AppPieChart() {
             Enrollments
           </button>
           <button
-            onClick={() => setActiveMetric("quizOutcomes")}
+            onClick={() => setActiveMetric("completionStatus")}
             className={`flex-1 py-2 px-2 rounded-md transition-all ${
-              activeMetric === "quizOutcomes"
+              activeMetric === "completionStatus"
                 ? "bg-background text-foreground shadow-sm font-semibold"
                 : "hover:text-foreground"
             }`}
           >
-            Quizzes
+            Completion
           </button>
         </div>
       </div>

@@ -9,7 +9,6 @@ import { LucideIcon } from "lucide-react";
 import {
   Award,
   BookOpen,
-  ClipboardList,
   LayoutDashboard,
   Settings,
   ChevronUp,
@@ -108,11 +107,6 @@ const studentNavGroups: NavGroup[] = [
             url: "/students/courses/completed",
           },
         ],
-      },
-      {
-        title: "Quizzes & Scores",
-        url: "/students/quizzes",
-        icon: ClipboardList,
       },
       {
         title: "My Certificates",

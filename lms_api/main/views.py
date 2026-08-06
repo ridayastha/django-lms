@@ -11,13 +11,13 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import (
-    Category, Course, Chapter, Lesson, Enrollment, LessonProgress, 
-    Quiz, QuizAttempt, CourseReview, Certificate, StudentProfile, TeacherProfile, User
+    Category, Course, Chapter, Lesson, Enrollment, LessonProgress,
+    CourseReview, Certificate, StudentProfile, TeacherProfile, User
 )
 from .serializers import (
-    UserSerializer, CategorySerializer, CourseListSerializer, CourseDetailSerializer, 
-    LessonSerializer, ChapterSerializer, EnrollmentSerializer, LessonProgressSerializer, 
-    QuizSerializer, QuizAttemptSerializer, CourseReviewSerializer, CertificateSerializer,
+    UserSerializer, CategorySerializer, CourseListSerializer, CourseDetailSerializer,
+    LessonSerializer, ChapterSerializer, EnrollmentSerializer, LessonProgressSerializer,
+    CourseReviewSerializer, CertificateSerializer,
     TeacherProfileSerializer, StudentProfileSerializer
 )
 
@@ -230,7 +230,7 @@ class LessonViewSet(viewsets.ModelViewSet):
         return Response({"status": "Complete"})
 
 # ==========================================
-# 5. STUDENT ACTIONS (Enrollments, Quizzes, Certificates)
+# 5. STUDENT ACTIONS (Enrollments, Certificates)
 # ==========================================
 
 class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -242,30 +242,6 @@ class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
         if student:
             return Enrollment.objects.filter(student=student)
         return Enrollment.objects.none()
-
-class QuizViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Quiz.objects.all()
-    serializer_class = QuizSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    @action(detail=True, methods=['post'])
-    def submit(self, request, pk=None):
-        quiz = self.get_object()
-        student = getattr(request.user, 'student_profile', None)
-        if not student: return Response({"detail": "Denied"}, status=403)
-        
-        answers = request.data.get('answers', {})
-        total = quiz.questions.count()
-        if total == 0: return Response({"detail": "Empty Quiz"}, status=400)
-
-        correct = 0
-        for q in quiz.questions.all():
-            if str(q.id) in answers and q.choices.filter(id=answers[str(q.id)], is_correct=True).exists():
-                correct += 1
-
-        score = (correct / total) * 100
-        attempt = QuizAttempt.objects.create(student=student, quiz=quiz, score=score, passed=(score >= quiz.pass_mark_percent))
-        return Response(QuizAttemptSerializer(attempt).data, status=201)
 
 class CourseReviewViewSet(viewsets.ModelViewSet):
     queryset = CourseReview.objects.all()

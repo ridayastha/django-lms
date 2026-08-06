@@ -27,7 +27,7 @@ export default function TodoList() {
     },
     {
       id: 2,
-      title: "Review 12 quiz submissions",
+      title: "Review lesson progress updates",
       completed: true,
     },
     {
@@ -38,11 +38,6 @@ export default function TodoList() {
     {
       id: 4,
       title: "Publish Machine Learning course",
-      completed: false,
-    },
-    {
-      id: 5,
-      title: "Create Quiz for Chapter 4",
       completed: false,
     },
     {

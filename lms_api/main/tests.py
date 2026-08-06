@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from .models import (
     Category,
@@ -15,6 +16,21 @@ from .models import (
     User,
 )
 from .serializers import EnrollmentSerializer
+
+
+class QuizFeatureRemovalTests(TestCase):
+    def test_quiz_endpoint_is_not_available(self):
+        user = User.objects.create_user(
+            username="student_quiz_test",
+            email="studentquiz@example.com",
+            password="password123",
+        )
+        client = APIClient()
+        client.force_authenticate(user=user)
+
+        response = client.get("/api/quizzes/")
+
+        self.assertEqual(response.status_code, 404)
 
 
 class EnrollmentSerializerTests(TestCase):

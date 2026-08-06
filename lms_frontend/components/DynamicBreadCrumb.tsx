@@ -18,7 +18,6 @@ const routeLabels: Record<string, string> = {
   courses: "Courses",
   "enrolled-courses": "Enrolled Courses",
   categories: "Categories",
-  quizzes: "Quizzes",
   certificates: "Certificates",
   reviews: "Reviews",
   settings: "Settings",

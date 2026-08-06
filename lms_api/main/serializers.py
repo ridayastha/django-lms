@@ -3,8 +3,7 @@ from rest_framework import serializers
 from .models import (
     User, TeacherProfile, StudentProfile, Category, Course,
     Chapter, Lesson, LessonAttachment, Enrollment,
-    LessonProgress, Quiz, Question, Choice, QuizAttempt,
-    CourseReview, Certificate
+    LessonProgress, CourseReview, Certificate
 )
 
 # ==========================================
@@ -175,39 +174,6 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         completed_lessons = self.get_completed_lessons(instance)
         representation['is_completed'] = total_lessons > 0 and completed_lessons == total_lessons
         return representation
-
-
-# ==========================================
-# QUIZ SERIALIZERS
-# ==========================================
-
-class ChoiceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Choice
-        fields = ['id', 'text']  # Hide 'is_correct' from default responses
-
-
-class QuestionSerializer(serializers.ModelSerializer):
-    choices = ChoiceSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Question
-        fields = ['id', 'text', 'choices']
-
-
-class QuizSerializer(serializers.ModelSerializer):
-    questions = QuestionSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Quiz
-        fields = ['id', 'chapter', 'title', 'pass_mark_percent', 'questions']
-
-
-class QuizAttemptSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = QuizAttempt
-        fields = ['id', 'student', 'quiz', 'score', 'passed', 'attempted_at']
-        read_only_fields = ['score', 'passed', 'attempted_at']
 
 
 # ==========================================

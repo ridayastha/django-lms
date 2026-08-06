@@ -21,7 +21,7 @@ const progressData = [
 
 export default function ProgressChart() {
   return (
-    <Card className="col-span-4 border rounded-xl">
+    <Card className="col-span-4">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Course Completion Rate</CardTitle>
         <CardDescription>Track your active course progress percentage</CardDescription>

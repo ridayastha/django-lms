@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Settings,
   Users,
-  ClipboardList,
   ChevronUp,
   User2,
   Plus,
@@ -63,11 +62,6 @@ const items = [
     title: "Students",
     url: "/students",
     icon: GraduationCap,
-  },
-  {
-    title: "Quizzes",
-    url: "/quizzes",
-    icon: ClipboardList,
   },
   {
     title: "Certificates",

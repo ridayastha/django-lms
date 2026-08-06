@@ -156,48 +156,7 @@ class LessonProgress(models.Model):
 
 
 # ==========================================
-# 4. QUIZZES & ASSIGNMENTS
-# ==========================================
-
-class Quiz(models.Model):
-    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name="quizzes")
-    title = models.CharField(max_length=200)
-    pass_mark_percent = models.PositiveIntegerField(default=70)
-
-    def __str__(self):
-        return f"Quiz: {self.title}"
-
-
-class Question(models.Model):
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
-    text = models.TextField()
-
-    def __str__(self):
-        return self.text
-
-
-class Choice(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="choices")
-    text = models.CharField(max_length=255)
-    is_correct = models.BooleanField(default=False)
-
-    def __str__(self):
-        return self.text
-
-
-class QuizAttempt(models.Model):
-    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="quiz_attempts")
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="attempts")
-    score = models.FloatField()
-    passed = models.BooleanField(default=False)
-    attempted_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.student.user.username} - {self.quiz.title} ({self.score}%)"
-
-
-# ==========================================
-# 5. REVIEWS & CERTIFICATES
+# 4. REVIEWS & CERTIFICATES
 # ==========================================
 
 class CourseReview(models.Model):

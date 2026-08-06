@@ -9,7 +9,6 @@ router.register(r'courses', views.CourseViewSet)
 router.register(r'chapters', views.ChapterViewSet) # NEW
 router.register(r'lessons', views.LessonViewSet)   # NEW (Changed from ReadOnly)
 router.register(r'enrollments', views.EnrollmentViewSet, basename='enrollment')
-router.register(r'quizzes', views.QuizViewSet)
 router.register(r'reviews', views.CourseReviewViewSet)
 router.register(r'certificates', views.CertificateViewSet, basename='certificate')
 router.register(r'teacher-courses', views.TeacherCourseViewSet, basename='teacher-courses')

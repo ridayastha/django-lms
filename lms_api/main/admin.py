@@ -12,10 +12,6 @@ from .models import (
     LessonAttachment,
     Enrollment,
     LessonProgress,
-    Quiz,
-    Question,
-    Choice,
-    QuizAttempt,
     CourseReview,
     Certificate,
 )
@@ -85,11 +81,6 @@ admin.site.register(LessonAttachment)
 
 admin.site.register(Enrollment)
 admin.site.register(LessonProgress)
-
-admin.site.register(Quiz)
-admin.site.register(Question)
-admin.site.register(Choice)
-admin.site.register(QuizAttempt)
 
 admin.site.register(CourseReview)
 admin.site.register(Certificate)

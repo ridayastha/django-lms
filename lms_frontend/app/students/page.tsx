@@ -232,44 +232,61 @@ export default function StudentDashboard() {
         {/* LEFT COLUMN: Core Learning & Purchases (8 Cols) */}
         <div className="lg:col-span-8 space-y-6">
           {/* Active Enrolled Courses */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <div>
-                <CardTitle className="text-lg font-bold">Enrolled Courses</CardTitle>
-                <CardDescription>Your active learning paths and completion rates</CardDescription>
-              </div>
-              <Button asChild variant="ghost" size="sm" className="gap-1 text-xs">
-                <Link href="students/enrolled-courses">
-                  View All <ArrowRight className="w-3 h-3" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {activeCourses.map((course) => (
-                <div key={course.id} className="p-4 border rounded-lg bg-card hover:border-primary/40 transition-colors space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold text-sm">{course.title}</h3>
-                      <p className="text-xs text-muted-foreground">Instructor: {course.instructor}</p>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      {course.completedLessons}/{course.totalLessons} Lessons
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Completion</span>
-                      <span>{course.progress}%</span>
-                    </div>
-                    <Progress value={course.progress} className="h-1.5" />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+<Card>
+  <CardHeader className="flex flex-row items-center justify-between pb-3">
+    <div>
+      <CardTitle className="text-lg font-bold">Enrolled Courses</CardTitle>
+      <CardDescription>Your active learning paths and completion rates</CardDescription>
+    </div>
+    <Button asChild variant="ghost" size="sm" className="gap-1 text-xs">
+      <Link href="/students/enrolled-courses">
+        View All <ArrowRight className="w-3 h-3" />
+      </Link>
+    </Button>
+  </CardHeader>
+  <CardContent className="space-y-4">
+    {activeCourses.length > 0 ? (
+      activeCourses.map((course) => (
+        <div key={course.id} className="p-4 border rounded-lg bg-card hover:border-primary/40 transition-colors space-y-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-semibold text-sm">{course.title}</h3>
+              <p className="text-xs text-muted-foreground">Instructor: {course.instructor}</p>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {course.completedLessons}/{course.totalLessons} Lessons
+            </Badge>
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Completion</span>
+              <span>{course.progress}%</span>
+            </div>
+            <Progress value={course.progress} className="h-1.5" />
+          </div>
+        </div>
+      ))
+    ) : (
+      <div className="flex flex-col items-center justify-center text-center py-8 px-4 border border-dashed rounded-lg bg-muted/30 space-y-3">
+        <div className="p-3 bg-muted rounded-full text-muted-foreground">
+          <BookOpen className="w-6 h-6" />
+        </div>
+        <div className="space-y-1 max-w-sm">
+          <h4 className="text-sm font-semibold">No Enrolled Courses</h4>
+          <p className="text-xs text-muted-foreground">
+            You haven’t enrolled in any courses yet. Browse our catalog to start learning.
+          </p>
+        </div>
+        <Button asChild size="sm" variant="outline" className="mt-2 text-xs">
+          <Link href="/students/courses">Explore Courses</Link>
+        </Button>
+      </div>
+    )}
+  </CardContent>
+</Card>
 
           {/* Purchased Website Templates & Digital Products */}
-          <Card>
+          {/* <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
                 <CardTitle className="text-lg font-bold">Purchased Web Products</CardTitle>
@@ -310,10 +327,10 @@ export default function StudentDashboard() {
                 </div>
               ))}
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Analytics Chart Component */}
-          <StudentCourseProgressChart />
+          <StudentCourseProgressChart enrollments={enrollments} />
         </div>
 
         {/* RIGHT COLUMN: Productivity, Utilities, & Calendar (4 Cols) */}
@@ -351,12 +368,12 @@ export default function StudentDashboard() {
           </Card> */}
 
           {/* Upcoming Deadlines & Live Schedule */}
-          <Card>
+          {/* <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-bold flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-primary" /> Upcoming Deadlines
               </CardTitle>
-              <CardDescription>Assignments, quizzes, & live reviews</CardDescription>
+              <CardDescription>Assignments, lessons, & live reviews</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {upcomingDeadlines.map((item) => (
@@ -374,7 +391,7 @@ export default function StudentDashboard() {
                 <Link href="/calendar">View Full Calendar</Link>
               </Button>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Embedded Student Todo List */}
           <Card>

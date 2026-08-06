@@ -130,7 +130,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="max-w-[700px] text-muted-foreground text-lg md:text-xl">
-                Empowering teachers to build engaging courses and students to accelerate their careers with interactive quizzes and certified paths.
+                Empowering teachers to build engaging courses and students to accelerate their careers through structured lessons and certified paths.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 min-w-[280px]">
@@ -316,7 +316,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold mb-2">Learn at Your Pace</h3>
                 <p className="text-sm text-muted-foreground">
-                  Watch HD video lessons, download source materials, and attempt quizzes.
+                  Watch HD video lessons, download source materials, and progress at your own pace.
                 </p>
               </div>
 
@@ -354,9 +354,9 @@ export default function LandingPage() {
 
               <div className="flex flex-col space-y-3 p-6 border rounded-xl bg-card">
                 <ClipboardList className="h-10 w-10 text-primary" />
-                <h3 className="text-xl font-bold">Interactive Quizzes</h3>
+                <h3 className="text-xl font-bold">Structured Learning</h3>
                 <p className="text-sm text-muted-foreground">
-                  Test student knowledge with automated pass mark criteria and instant scores.
+                  Organize chapters and lessons into a clear path that supports focused learning.
                 </p>
               </div>
 
@@ -372,7 +372,7 @@ export default function LandingPage() {
                 <BarChart3 className="h-10 w-10 text-primary" />
                 <h3 className="text-xl font-bold">Progress Tracking</h3>
                 <p className="text-sm text-muted-foreground">
-                  Track completed lessons, quiz pass rates, and overall student progression.
+                  Track completed lessons and overall student progression with clear progress indicators.
                 </p>
               </div>
 
@@ -434,7 +434,7 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p className="text-sm text-muted-foreground mb-6">
-                  "As an instructor, publishing my chapters, attachments, and quizzes in one unified dashboard has saved me hours every week."
+                  "As an instructor, publishing my chapters and attachments in one unified dashboard has saved me hours every week."
                 </p>
                 <div className="flex items-center gap-3">
                   <Avatar>
@@ -455,7 +455,7 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p className="text-sm text-muted-foreground mb-6">
-                  "The progress tracking kept me motivated to complete my Data Science course. The quiz retakes helped reinforce key concepts."
+                  "The progress tracking kept me motivated to complete my Data Science course and stay focused on every lesson."
                 </p>
                 <div className="flex items-center gap-3">
                   <Avatar>
@@ -508,7 +508,7 @@ export default function LandingPage() {
               <span>HridayaSoft LMS</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Empowering learners worldwide through modern course management, automated quizzes, and verifiable certifications.
+              Empowering learners worldwide through modern course management, structured lessons, and verifiable certifications.
             </p>
           </div>
 
