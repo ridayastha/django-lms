@@ -155,7 +155,6 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         completed = self.get_completed_lessons(obj)
         if total == 0:
             return 0
-        completed = self.get_completed_lessons(obj)
 
         return round((completed / total) * 100)
 
@@ -169,6 +168,13 @@ class EnrollmentSerializer(serializers.ModelSerializer):
                 "title": lesson.title,
             }
         return None
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        total_lessons = self.get_total_lessons(instance)
+        completed_lessons = self.get_completed_lessons(instance)
+        representation['is_completed'] = total_lessons > 0 and completed_lessons == total_lessons
+        return representation
 
 
 # ==========================================
