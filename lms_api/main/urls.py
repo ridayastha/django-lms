@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
+from .views import InitiateEsewaPaymentView, VerifyEsewaPaymentView
 
 router = DefaultRouter()
 router.register(r'categories', views.CategoryViewSet)
@@ -27,4 +28,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path("logout/", views.LogoutView.as_view(), name='logout'),
 
+    #esewa
+    path('payments/initiate/', InitiateEsewaPaymentView.as_view(), name='esewa-initiate'),
+    path('payments/verify/', VerifyEsewaPaymentView.as_view(), name='esewa-verify'),
 ]

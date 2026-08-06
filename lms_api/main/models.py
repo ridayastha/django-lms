@@ -180,3 +180,30 @@ class Certificate(models.Model):
 
     def __str__(self):
         return f"Certificate {self.certificate_id} - {self.enrollment.student.user.username}"
+
+# ==========================================
+# 5. PAYMENTS & TRANSACTIONS
+# ==========================================
+
+class PaymentOrder(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        COMPLETE = "COMPLETE", "Complete"
+        FAILED = "FAILED", "Failed"
+
+    # Unique string required by eSewa v2 for identifying transactions
+    transaction_uuid = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
+    
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="payments")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="payments")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    
+    # Unique reference ID sent back by eSewa after a successful transaction
+    ref_id = models.CharField(max_length=100, blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Order {self.transaction_uuid} | {self.student.user.username} | {self.status}"

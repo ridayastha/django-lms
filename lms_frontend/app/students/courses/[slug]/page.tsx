@@ -97,7 +97,11 @@ export default async function CourseDetailPage({ params }: PageProps) {
               <span className="text-2xl font-bold text-foreground">
                 {Number(course.price) > 0 ? `$${course.price}` : 'Free'}
               </span>
-              <EnrollButton slug={course.slug} />
+              <EnrollButton
+  courseId={course.id}
+  slug={course.slug}
+  price={Number(course.price)}
+/>
             </div>
           </div>
         </CardHeader>
