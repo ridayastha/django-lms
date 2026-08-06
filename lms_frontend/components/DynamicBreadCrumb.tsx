@@ -16,6 +16,7 @@ const routeLabels: Record<string, string> = {
   students: "Students",
   student: "Student",
   courses: "Courses",
+  "enrolled-courses": "Enrolled Courses",
   categories: "Categories",
   quizzes: "Quizzes",
   certificates: "Certificates",
@@ -27,6 +28,14 @@ const routeLabels: Record<string, string> = {
 export function DynamicBreadcrumb() {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
+
+  const getLabel = (segment: string, index: number, isLast: boolean) => {
+    if (segment === "courses" && isLast && segments[index - 1] === "students") {
+      return "Explore Courses";
+    }
+
+    return routeLabels[segment] ?? segment.charAt(0).toUpperCase() + segment.slice(1);
+  };
 
   return (
     <Breadcrumb>
@@ -41,9 +50,7 @@ export function DynamicBreadcrumb() {
           const href = `/${segments.slice(0, index + 1).join("/")}`;
           const isLast = index === segments.length - 1;
 
-          const label =
-            routeLabels[segment] ??
-            segment.charAt(0).toUpperCase() + segment.slice(1);
+          const label = getLabel(segment, index, isLast);
 
           return (
             <React.Fragment key={href}>

@@ -175,7 +175,7 @@ export default function StudentDashboard() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="space-y-2 flex-1">
                 <div className="flex items-center gap-2">
-                  <Badge variant="default" className="gap-1">
+                  <Badge variant="destructive" className="gap-1">
                     <PlayCircle className="w-3.5 h-3.5" /> Continue Learning
                   </Badge>
                   <span className="text-xs text-muted-foreground">• Last Active Module</span>

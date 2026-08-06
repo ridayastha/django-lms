@@ -142,15 +142,19 @@ export default function StudentSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [enrolledCount, setEnrolledCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
 
   useEffect(() => {
     async function loadEnrollments() {
       try {
         const response = await api.get("/enrollments/");
-        setEnrolledCount(Array.isArray(response.data) ? response.data.length : 0);
+        const enrollments = Array.isArray(response.data) ? response.data : [];
+        setEnrolledCount(enrollments.length);
+        setCompletedCount(enrollments.filter((enrollment) => enrollment.is_completed).length);
       } catch (error) {
         console.error("Failed to load enrolled courses count", error);
         setEnrolledCount(0);
+        setCompletedCount(0);
       }
     }
 
@@ -161,6 +165,13 @@ export default function StudentSidebar() {
   const isItemActive = (url?: string) => {
     if (!url) return false;
     if (url === "/students") return pathname === "/students"; // Strict match for root dashboard
+
+    if (url === "/students/courses") {
+      if (pathname === "/students/courses") return true;
+      if (pathname === "/students/courses/completed") return false;
+      return pathname.startsWith(`${url}/`);
+    }
+
     return pathname === url || pathname.startsWith(`${url}/`);
   };
 
@@ -232,9 +243,13 @@ export default function StudentSidebar() {
                                     >
                                       <Link href={subItem.url}>
                                         <span>{subItem.title}</span>
-                                        {(subItem.url === "/students/enrolled-courses" && enrolledCount > 0) ? (
+                                        {subItem.url === "/students/enrolled-courses" && enrolledCount > 0 ? (
                                           <SidebarMenuBadge>
                                             {enrolledCount.toString()}
+                                          </SidebarMenuBadge>
+                                        ) : subItem.url === "/students/courses/completed" && completedCount > 0 ? (
+                                          <SidebarMenuBadge>
+                                            {completedCount.toString()}
                                           </SidebarMenuBadge>
                                         ) : subItem.badge ? (
                                           <SidebarMenuBadge>

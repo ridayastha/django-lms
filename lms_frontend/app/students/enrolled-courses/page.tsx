@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getEnrolledCourses } from "@/lib/api";
 
 import EnrolledCourseGrid from "@/components/student/courses/EnrolledCourseGrid";
+import { DynamicBreadcrumb } from "@/components/DynamicBreadCrumb";
 
 export default function EnrolledCoursesPage() {
   const [courses, setCourses] = useState([]);
@@ -33,6 +34,9 @@ export default function EnrolledCoursesPage() {
 
   return (
     <div className="space-y-6 p-6">
+      <div>
+        <DynamicBreadcrumb />
+      </div>
       <div>
         <h1 className="text-3xl font-bold">
           Enrolled Courses
