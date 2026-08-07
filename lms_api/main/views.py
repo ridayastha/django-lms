@@ -1,5 +1,6 @@
 import json
 import base64
+import uuid
 from django.conf import settings
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -335,25 +336,20 @@ class InitiateEsewaPaymentView(APIView):
             })
 
         # Create a Pending Payment Order
-        order, created = PaymentOrder.objects.create(
+        order = PaymentOrder.objects.create(
             student=student_profile,
             course=course,
-            status = PaymentOrder.Status.PENDING,
-            defaults = {
-                'amount': course.price,
-            },
+            amount=course.price,
+            status=PaymentOrder.Status.PENDING,
+            transaction_uuid=uuid.uuid4(),
         )
-
-        if not created and order.amount != course.price:
-            order.amount = course.price
-            order.save(update_fields=["amount"])
 
         # eSewa Configuration values
         product_code = getattr(settings, 'ESEWA_PRODUCT_CODE', 'EPAYTEST')
         secret_key = getattr(settings, 'ESEWA_SECRET_KEY', '8gBmpyzACX4A') # Default eSewa Test Key
         
         # eSewa requires formatted total string
-        total_amount = f"{order.amount:.2f}" if isinstance(order.amount, float) else str(order.amount)
+        total_amount = f"{order.amount:.2f}"
         transaction_uuid = str(order.transaction_uuid)
 
         # Generate Signature
@@ -411,7 +407,7 @@ class VerifyEsewaPaymentView(APIView):
             
             transaction_uuid = decoded_json.get("transaction_uuid")
             payment_status = decoded_json.get("status") # COMPLETE
-            ref_id = decoded_json.get("reference_id")
+            ref_id = decoded_json.get("transaction_code")
 
             order = PaymentOrder.objects.get(transaction_uuid=transaction_uuid)
 
