@@ -14,6 +14,7 @@ from .models import (
     LessonProgress,
     CourseReview,
     Certificate,
+    PaymentOrder,
 )
 
 
@@ -69,6 +70,32 @@ class CustomUserAdmin(UserAdmin):
         ),
     )
 
+@admin.register(PaymentOrder)
+class PaymentOrderAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "student",
+        "course",
+        "amount",
+        "status",
+        "transaction_uuid",
+        "ref_id",
+        "created_at",
+    )
+
+    list_filter = ("status", "created_at")
+
+    search_fields = (
+        "transaction_uuid",
+        "ref_id",
+        "student__user__username",
+        "course__title",
+    )
+
+    readonly_fields = (
+        "transaction_uuid",
+        "created_at",
+    )
 
 admin.site.register(TeacherProfile)
 admin.site.register(StudentProfile)

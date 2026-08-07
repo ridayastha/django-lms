@@ -144,6 +144,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         if not student_profile:
             return Response({"detail": "Only students can enroll in courses."}, status=status.HTTP_403_FORBIDDEN)
 
+        if course.price > 0:
+            return Response(
+                {
+                    "detail": "This is a paid course. Please complete payment first."
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         enrollment, created = Enrollment.objects.get_or_create(student=student_profile, course=course)
         if not created:
             return Response({"detail": "Already enrolled."}, status=status.HTTP_400_BAD_REQUEST)
@@ -327,12 +335,18 @@ class InitiateEsewaPaymentView(APIView):
             })
 
         # Create a Pending Payment Order
-        order = PaymentOrder.objects.create(
+        order, created = PaymentOrder.objects.create(
             student=student_profile,
             course=course,
-            amount=course.price,
-            status=PaymentOrder.Status.PENDING
+            status = PaymentOrder.Status.PENDING,
+            defaults = {
+                'amount': course.price,
+            },
         )
+
+        if not created and order.amount != course.price:
+            order.amount = course.price
+            order.save(update_fields=["amount"])
 
         # eSewa Configuration values
         product_code = getattr(settings, 'ESEWA_PRODUCT_CODE', 'EPAYTEST')
@@ -401,22 +415,37 @@ class VerifyEsewaPaymentView(APIView):
 
             order = PaymentOrder.objects.get(transaction_uuid=transaction_uuid)
 
+            if order.student != request.user.student_profile:
+                    return Response(
+                        {"error": "Unauthorized payment."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+            if order.status == PaymentOrder.Status.COMPLETE:
+                return Response(
+                    {
+                    "message": "Payment already Verified",
+                    "course_slug": order.course.slug,
+                    }
+                )
+            
+            
+
             if payment_status == "COMPLETE":
                 order.status = PaymentOrder.Status.COMPLETE
                 order.ref_id = ref_id
                 order.save()
 
                 # Automatically enroll student into the course
-                enrollment, _ = Enrollment.objects.get_or_create(
+                Enrollment.objects.get_or_create(
                     student=order.student,
                     course=order.course
                 )
 
                 return Response({
                     "message": "Payment verified and student enrolled successfully!",
-                    "course_id": order.course.id,
                     "course_slug": order.course.slug
-                }, status=status.HTTP_200_OK)
+                })
 
             else:
                 order.status = PaymentOrder.Status.FAILED
