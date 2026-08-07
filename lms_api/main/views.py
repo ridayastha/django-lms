@@ -1,30 +1,63 @@
-import json
 import base64
+import hmac
+import hashlib
+import json
 import uuid
+
 from django.conf import settings
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
-from rest_framework import viewsets, permissions, status, generics, filters
+from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import (
-    Category, Course, Chapter, Lesson, Enrollment, LessonProgress,
-    CourseReview, Certificate, StudentProfile, TeacherProfile, User,
-    PaymentOrder
+    Category, Certificate, Chapter, Course, CourseReview,
+    Enrollment, Lesson, LessonProgress, PaymentOrder,
+    StudentProfile, TeacherProfile, User
 )
 from .serializers import (
-    UserSerializer, CategorySerializer, CourseListSerializer, CourseDetailSerializer,
-    LessonSerializer, ChapterSerializer, EnrollmentSerializer, LessonProgressSerializer,
-    CourseReviewSerializer, CertificateSerializer, CustomTokenObtainPairSerializer,
-    TeacherProfileSerializer, StudentProfileSerializer
+    CategorySerializer, CertificateSerializer, ChapterSerializer,
+    CourseDetailSerializer, CourseListSerializer, CourseReviewSerializer,
+    CustomTokenObtainPairSerializer, EnrollmentSerializer, LessonProgressSerializer,
+    LessonSerializer, StudentProfileSerializer, TeacherProfileSerializer, UserSerializer
 )
 from .utils import generate_esewa_signature
+
+
+# ==========================================
+# HELPER FUNCTIONS
+# ==========================================
+
+def verify_esewa_response_signature(decoded_json, secret_key):
+    """
+    Dynamically computes HMAC-SHA256 signature for eSewa response payloads
+    based on the exact order listed in 'signed_field_names'.
+    Format: key1=value1,key2=value2,...
+    """
+    signed_field_names_str = decoded_json.get("signed_field_names", "")
+    if not signed_field_names_str:
+        return None
+
+    signed_field_names = [f.strip() for f in signed_field_names_str.split(",") if f.strip()]
+    
+    signed_parts = []
+    for field in signed_field_names:
+        value = decoded_json.get(field, "")
+        signed_parts.append(f"{field}={value}")
+
+    data_to_sign = ",".join(signed_parts)
+
+    secret = secret_key.encode("utf-8")
+    message = data_to_sign.encode("utf-8")
+
+    digest = hmac.new(secret, message, hashlib.sha256).digest()
+    return base64.b64encode(digest).decode("utf-8")
 
 
 # ==========================================
@@ -42,17 +75,9 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ==========================================
-# LOGIN (JWT)
-# ==========================================
-
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
-
-# ==========================================
-# CURRENT USER
-# ==========================================
 
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -61,10 +86,6 @@ class CurrentUserView(APIView):
         serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
-
-# ==========================================
-# LOGOUT
-# ==========================================
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -87,7 +108,7 @@ class LogoutView(APIView):
 
 
 # ==========================================
-# 2. PROFILE MANAGEMENT (Retrieve & Update)
+# 2. PROFILE MANAGEMENT
 # ==========================================
 
 class TeacherProfileDetail(generics.RetrieveUpdateAPIView):
@@ -147,9 +168,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         if course.price > 0:
             return Response(
-                {
-                    "detail": "This is a paid course. Please complete payment first."
-                },
+                {"detail": "This is a paid course. Please complete payment first."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -176,7 +195,6 @@ class CourseViewSet(viewsets.ModelViewSet):
 # ==========================================
 
 class TeacherCourseViewSet(viewsets.ModelViewSet):
-    """ Teachers managing their own courses """
     serializer_class = CourseDetailSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -252,7 +270,7 @@ class LessonViewSet(viewsets.ModelViewSet):
 
 
 # ==========================================
-# 5. STUDENT ACTIONS (Enrollments, Certificates)
+# 5. STUDENT ACTIONS
 # ==========================================
 
 class EnrollmentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -321,21 +339,17 @@ class InitiateEsewaPaymentView(APIView):
         if not student_profile:
             return Response({"error": "Only student profiles can initiate purchases."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Prevent double purchases if already enrolled
         if Enrollment.objects.filter(student=student_profile, course=course).exists():
             return Response({"error": "You are already enrolled in this course."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Free course -> enroll immediately
         if course.price <= 0:
-            Enrollment.objects.create(student=student_profile,course=course)
-            
+            Enrollment.objects.get_or_create(student=student_profile, course=course)
             return Response({
                 "free": True,
                 "course_slug": course.slug,
                 "message": "Enrolled successfully."
             })
 
-        # Create a Pending Payment Order
         order = PaymentOrder.objects.create(
             student=student_profile,
             course=course,
@@ -344,15 +358,12 @@ class InitiateEsewaPaymentView(APIView):
             transaction_uuid=uuid.uuid4(),
         )
 
-        # eSewa Configuration values
         product_code = settings.ESEWA_PRODUCT_CODE
         secret_key = settings.ESEWA_SECRET_KEY
         
-        # eSewa requires formatted total string
         total_amount = f"{order.amount:.2f}"
         transaction_uuid = str(order.transaction_uuid)
 
-        # Generate Signature
         signature = generate_esewa_signature(
             total_amount=total_amount,
             transaction_uuid=transaction_uuid,
@@ -360,36 +371,28 @@ class InitiateEsewaPaymentView(APIView):
             secret_key=secret_key
         )
 
-        # eSewa v2 Form Payload
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
+
         esewa_payload = {
             "amount": total_amount,
-            "failure_url": f"http://localhost:3000/payment/failure?transaction_uuid={transaction_uuid}",
+            "failure_url": f"{frontend_url}/payment/failure?transaction_uuid={transaction_uuid}",
             "product_delivery_charge": "0",
             "product_service_charge": "0",
             "product_code": product_code,
             "signature": signature,
             "signed_field_names": "total_amount,transaction_uuid,product_code",
-            "success_url": "http://localhost:3000/payment/success",
+            "success_url": f"{frontend_url}/payment/success",
             "tax_amount": "0",
             "total_amount": total_amount,
             "transaction_uuid": transaction_uuid
         }
-
-        print("\n========== ESEWA PAYLOAD ==========")
-        print("Signing String:", f"total_amount={total_amount},transaction_uuid={transaction_uuid},product_code={product_code}")
-        print("Signature:", signature)
-
-        for key, value in esewa_payload.items():
-            print(f"{key}: {value}")
-        print("===================================\n")
-            
 
         return Response(esewa_payload, status=status.HTTP_200_OK)
 
 
 class VerifyEsewaPaymentView(APIView):
     """
-    Verifies base64 encoded response from eSewa,
+    Verifies base64 encoded response from eSewa using dynamic signature validation,
     marks PaymentOrder as COMPLETE, and enrolls the student.
     """
     permission_classes = [permissions.IsAuthenticated]
@@ -401,38 +404,46 @@ class VerifyEsewaPaymentView(APIView):
             return Response({"error": "No payment data provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Decode eSewa base64 string
             decoded_bytes = base64.b64decode(encoded_data)
             decoded_json = json.loads(decoded_bytes.decode('utf-8'))
             
             transaction_uuid = decoded_json.get("transaction_uuid")
-            payment_status = decoded_json.get("status") # COMPLETE
+            payment_status = decoded_json.get("status")
             ref_id = decoded_json.get("transaction_code")
+            received_signature = decoded_json.get("signature")
 
             order = PaymentOrder.objects.get(transaction_uuid=transaction_uuid)
 
-            if order.student != request.user.student_profile:
-                    return Response(
-                        {"error": "Unauthorized payment."},
-                        status=status.HTTP_403_FORBIDDEN,
-                    )
+            student_profile = getattr(request.user, 'student_profile', None)
+            if not student_profile or order.student != student_profile:
+                return Response(
+                    {"error": "Unauthorized payment."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
             if order.status == PaymentOrder.Status.COMPLETE:
-                return Response(
-                    {
-                    "message": "Payment already Verified",
+                return Response({
+                    "message": "Payment already verified",
                     "course_slug": order.course.slug,
-                    }
+                })
+
+            # Dynamically verify eSewa response signature based on signed_field_names
+            expected_signature = verify_esewa_response_signature(
+                decoded_json=decoded_json,
+                secret_key=settings.ESEWA_SECRET_KEY
+            )
+
+            if not expected_signature or received_signature != expected_signature:
+                return Response(
+                    {"error": "Invalid signature. Fraudulent payment response detected."},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
-            
-            
 
             if payment_status == "COMPLETE":
                 order.status = PaymentOrder.Status.COMPLETE
                 order.ref_id = ref_id
                 order.save()
 
-                # Automatically enroll student into the course
                 Enrollment.objects.get_or_create(
                     student=order.student,
                     course=order.course
