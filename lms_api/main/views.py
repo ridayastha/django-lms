@@ -345,8 +345,8 @@ class InitiateEsewaPaymentView(APIView):
         )
 
         # eSewa Configuration values
-        product_code = getattr(settings, 'ESEWA_PRODUCT_CODE', 'EPAYTEST')
-        secret_key = getattr(settings, 'ESEWA_SECRET_KEY', '8gBmpyzACX4A') # Default eSewa Test Key
+        product_code = settings.ESEWA_PRODUCT_CODE
+        secret_key = settings.ESEWA_SECRET_KEY
         
         # eSewa requires formatted total string
         total_amount = f"{order.amount:.2f}"

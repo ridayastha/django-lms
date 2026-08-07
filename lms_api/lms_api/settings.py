@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os 
-
+from decouple import config
 from pathlib import Path
 from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -173,5 +173,5 @@ CORS_ALLOW_HEADERS = [
 
 AUTH_USER_MODEL = 'main.User'
 
-ESEWA_PRODUCT_CODE = "EPAYTEST"
-ESEWA_SECRET_KEY = "8gBm/:&EnhH.1/q"
+ESEWA_PRODUCT_CODE = config("ESEWA_PRODUCT_CODE")
+ESEWA_SECRET_KEY = config("ESEWA_SECRET_KEY")
