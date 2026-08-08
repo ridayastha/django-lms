@@ -3,7 +3,11 @@ from rest_framework import serializers
 from .models import (
     User, TeacherProfile, StudentProfile, Category, Course,
     Chapter, Lesson, LessonAttachment, Enrollment,
-    LessonProgress, CourseReview, Certificate
+    LessonProgress, CourseReview, Certificate, Quiz,
+Question,
+Option,
+QuizAttempt,
+Answer,
 )
 
 # ==========================================
@@ -228,3 +232,230 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["user"] = UserSerializer(self.user, context={'request': request}).data
 
         return data
+
+
+# ==========================================
+# QUIZ SERIALIZERS
+# ==========================================
+
+class OptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Option
+        fields = [
+            'id',
+            'option_text',
+            'order',
+        ]
+
+
+class QuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = [
+            'id',
+            'question_type',
+            'question_text',
+            'points',
+            'order',
+        ]
+
+
+class QuestionWithOptionsSerializer(QuestionSerializer):
+    options = OptionSerializer(
+        many=True,
+        read_only=True
+    )
+
+    class Meta(QuestionSerializer.Meta):
+        fields = QuestionSerializer.Meta.fields + [
+            'options'
+        ]
+
+
+class QuizSerializer(serializers.ModelSerializer):
+    questions = QuestionWithOptionsSerializer(
+        many=True,
+        read_only=True
+    )
+    total_questions = serializers.SerializerMethodField()
+    total_points = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Quiz
+        fields = [
+            'id',
+            'lesson',
+            'title',
+            'description',
+            'time_limit_minutes',
+            'passing_score',
+            'is_active',
+            'order',
+            'created_at',
+            'updated_at',
+            'questions',
+            'total_questions',
+            'total_points',
+        ]
+
+    def get_total_questions(self, obj):
+        return obj.questions.count()
+
+    def get_total_points(self, obj):
+        return sum(
+            question.points
+            for question in obj.questions.all()
+        )
+
+
+class QuizAttemptSerializer(serializers.ModelSerializer):
+    quiz = QuizSerializer(read_only=True)
+    student = StudentProfileSerializer(read_only=True)
+    score_percentage = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuizAttempt
+        fields = [
+            'id',
+            'student',
+            'quiz',
+            'status',
+            'score',
+            'max_score',
+            'passed',
+            'started_at',
+            'completed_at',
+            'score_percentage',
+        ]
+
+    def get_score_percentage(self, obj):
+        return obj.score_percentage
+
+
+class QuizAttemptDetailSerializer(QuizAttemptSerializer):
+    answers = serializers.SerializerMethodField()
+
+    class Meta(QuizAttemptSerializer.Meta):
+        fields = QuizAttemptSerializer.Meta.fields + [
+            'answers'
+        ]
+
+    def get_answers(self, obj):
+        answers = obj.answers.select_related(
+            'question',
+            'selected_option'
+        )
+
+        return AnswerSerializer(
+            answers,
+            many=True
+        ).data
+
+
+class AnswerSerializer(serializers.ModelSerializer):
+    question = QuestionWithOptionsSerializer(
+        read_only=True
+    )
+
+    selected_option_id = serializers.PrimaryKeyRelatedField(
+        queryset=Option.objects.all(),
+        source='selected_option',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = Answer
+        fields = [
+            'id',
+            'question',
+            'selected_option_id',
+            'short_answer_text',
+            'is_correct',
+            'points_earned',
+            'answered_at',
+        ]
+
+        read_only_fields = [
+            'id',
+            'question',
+            'is_correct',
+            'points_earned',
+            'answered_at',
+        ]
+
+
+class QuizAnswerInputSerializer(serializers.Serializer):
+    question_id = serializers.IntegerField()
+
+    selected_option_id = serializers.IntegerField(
+        required=False,
+        allow_null=True
+    )
+
+    short_answer_text = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True
+    )
+
+
+class SubmitQuizSerializer(serializers.Serializer):
+    answers = QuizAnswerInputSerializer(
+        many=True,
+        allow_empty=False
+    )
+
+    time_taken = serializers.IntegerField(
+        required=False,
+        min_value=0
+    )
+
+
+class QuizResultSerializer(serializers.ModelSerializer):
+    score_percentage = serializers.SerializerMethodField()
+    correct_answers = serializers.SerializerMethodField()
+    wrong_answers = serializers.SerializerMethodField()
+    unanswered = serializers.SerializerMethodField()
+    answers = AnswerSerializer(
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = QuizAttempt
+        fields = [
+            'id',
+            'quiz',
+            'status',
+            'score',
+            'max_score',
+            'passed',
+            'started_at',
+            'completed_at',
+            'score_percentage',
+            'correct_answers',
+            'wrong_answers',
+            'unanswered',
+            'answers',
+        ]
+
+    def get_score_percentage(self, obj):
+        return obj.score_percentage
+
+    def get_correct_answers(self, obj):
+        return obj.answers.filter(
+            is_correct=True
+        ).count()
+
+    def get_wrong_answers(self, obj):
+        return obj.answers.filter(
+            is_correct=False
+        ).count()
+
+    def get_unanswered(self, obj):
+        total_questions = obj.quiz.questions.count()
+        answered = obj.answers.count()
+
+        return total_questions - answered

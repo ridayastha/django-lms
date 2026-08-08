@@ -15,6 +15,11 @@ from .models import (
     CourseReview,
     Certificate,
     PaymentOrder,
+    Quiz,
+    Question,
+    Option,
+    QuizAttempt,
+    Answer,
 )
 
 
@@ -95,6 +100,150 @@ class PaymentOrderAdmin(admin.ModelAdmin):
     readonly_fields = (
         "transaction_uuid",
         "created_at",
+    )
+
+@admin.register(Quiz)
+class QuizAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "title",
+        "lesson",
+        "time_limit_minutes",
+        "passing_score",
+        "is_active",
+        "order",
+    )
+
+    list_filter = (
+        "is_active",
+    )
+
+    search_fields = (
+        "title",
+        "description",
+        "lesson__title",
+    )
+
+    ordering = (
+        "lesson",
+        "order",
+    )
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "quiz",
+        "question_text",
+        "question_type",
+        "points",
+        "order",
+    )
+
+    list_filter = (
+        "question_type",
+        "quiz",
+    )
+
+    search_fields = (
+        "question_text",
+        "quiz__title",
+    )
+
+    ordering = (
+        "quiz",
+        "order",
+    )
+
+
+@admin.register(Option)
+class OptionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "question",
+        "option_text",
+        "is_correct",
+        "order",
+    )
+
+    list_filter = (
+        "is_correct",
+        "question__question_type",
+    )
+
+    search_fields = (
+        "option_text",
+        "question__question_text",
+    )
+
+    ordering = (
+        "question",
+        "order",
+    )
+
+
+@admin.register(QuizAttempt)
+class QuizAttemptAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "student",
+        "quiz",
+        "status",
+        "score",
+        "max_score",
+        "passed",
+        "started_at",
+        "completed_at",
+    )
+
+    list_filter = (
+        "status",
+        "passed",
+        "quiz",
+    )
+
+    search_fields = (
+        "student__user__username",
+        "student__user__email",
+        "quiz__title",
+    )
+
+    readonly_fields = (
+        "started_at",
+        "completed_at",
+    )
+
+    ordering = (
+        "-started_at",
+    )
+
+
+@admin.register(Answer)
+class AnswerAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "attempt",
+        "question",
+        "selected_option",
+        "is_correct",
+        "points_earned",
+    )
+
+    list_filter = (
+        "is_correct",
+        "question__question_type",
+    )
+
+    search_fields = (
+        "attempt__student__user__username",
+        "question__question_text",
+        "short_answer_text",
+    )
+
+    ordering = (
+        "attempt",
+        "question",
     )
 
 admin.site.register(TeacherProfile)

@@ -207,3 +207,111 @@ class PaymentOrder(models.Model):
 
     def __str__(self):
         return f"Order {self.transaction_uuid} | {self.student.user.username} | {self.status}"
+
+# Add these models to your existing models.py
+
+class Quiz(models.Model):
+    """Quiz model for course lessons"""
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="quizzes")
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    time_limit_minutes = models.PositiveIntegerField(default=0, help_text="0 means no time limit")
+    passing_score = models.PositiveIntegerField(
+        default=70,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Passing score in percentage"
+    )
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order"]
+        unique_together = ("lesson", "order")
+
+    def __str__(self):
+        return f"{self.lesson.title} - Quiz: {self.title}"
+
+
+class Question(models.Model):
+    """Question model for quizzes"""
+    class QuestionType(models.TextChoices):
+        MULTIPLE_CHOICE = "MCQ", "Multiple Choice"
+        TRUE_FALSE = "TF", "True/False"
+        SHORT_ANSWER = "SA", "Short Answer"
+
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
+    question_type = models.CharField(max_length=10, choices=QuestionType.choices, default=QuestionType.MULTIPLE_CHOICE)
+    question_text = models.TextField()
+    points = models.PositiveIntegerField(default=1)
+    order = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.quiz.title} - Q{self.order}: {self.question_text[:50]}"
+
+
+class Option(models.Model):
+    """Options for multiple choice questions"""
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="options")
+    option_text = models.CharField(max_length=500)
+    is_correct = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["order"]
+        unique_together = ("question","order")
+
+    def __str__(self):
+        return f"{self.question.question_text[:30]} - {self.option_text[:30]}"
+
+
+class QuizAttempt(models.Model):
+    """Track student's quiz attempts"""
+    class AttemptStatus(models.TextChoices):
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        COMPLETED = "COMPLETED", "Completed"
+        TIMED_OUT = "TIMED_OUT", "Timed Out"
+
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name="quiz_attempts")
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="attempts")
+    status = models.CharField(max_length=20, choices=AttemptStatus.choices, default=AttemptStatus.IN_PROGRESS)
+    score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    max_score = models.PositiveIntegerField(default=0)
+    passed = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"{self.student.user.username} - {self.quiz.title} ({self.status})"
+
+    @property
+    def score_percentage(self):
+        if self.max_score > 0 and self.score is not None:
+            return round((float(self.score) / self.max_score) * 100, 2)
+        return 0
+
+
+class Answer(models.Model):
+    """Store student's answers for each question"""
+    attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name="answers")
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    selected_option = models.ForeignKey(Option, on_delete=models.CASCADE, null=True, blank=True)
+    short_answer_text = models.TextField(blank=True, null=True)
+    is_correct = models.BooleanField(default=False)
+    points_earned = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("attempt", "question")
+
+    def __str__(self):
+        return f"{self.attempt.student.user.username} - Q{self.question.order}"

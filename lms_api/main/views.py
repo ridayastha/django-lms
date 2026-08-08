@@ -5,7 +5,6 @@ import json
 import uuid
 
 from django.conf import settings
-from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import filters, generics, permissions, status, viewsets
@@ -15,18 +14,35 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.db import transaction
+from datetime import timedelta
+from django.utils import timezone
 
 from .models import (
     Category, Certificate, Chapter, Course, CourseReview,
-    Enrollment, Lesson, LessonProgress, PaymentOrder,
-    StudentProfile, TeacherProfile, User
+    Enrollment, Lesson, LessonProgress, PaymentOrder, Quiz, QuizAttempt,
+    StudentProfile, TeacherProfile, User, Question, Answer 
 )
 from .serializers import (
-    CategorySerializer, CertificateSerializer, ChapterSerializer,
-    CourseDetailSerializer, CourseListSerializer, CourseReviewSerializer,
-    CustomTokenObtainPairSerializer, EnrollmentSerializer, LessonProgressSerializer,
-    LessonSerializer, StudentProfileSerializer, TeacherProfileSerializer, UserSerializer
+    CategorySerializer,
+    CertificateSerializer,
+    ChapterSerializer,
+    CourseDetailSerializer,
+    CourseListSerializer,
+    CourseReviewSerializer,
+    CustomTokenObtainPairSerializer,
+    EnrollmentSerializer,
+    LessonProgressSerializer,
+    LessonSerializer,
+    QuizSerializer,
+    QuizResultSerializer,
+    QuizAttemptSerializer,
+    StudentProfileSerializer,
+    SubmitQuizSerializer,
+    TeacherProfileSerializer,
+    UserSerializer,
 )
+
 from .utils import generate_esewa_signature
 
 
@@ -463,3 +479,449 @@ class VerifyEsewaPaymentView(APIView):
             return Response({"error": "Order transaction not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": f"Verification failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Add these to your views.py
+
+class QuizViewSet(viewsets.ModelViewSet):
+    """ViewSet for quiz management"""
+    serializer_class = QuizSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Return quizzes for the course"""
+        lesson_id = self.request.query_params.get('lesson_id')
+        if lesson_id:
+            return Quiz.objects.filter(lesson_id=lesson_id, is_active=True)
+        return Quiz.objects.filter(is_active=True)
+
+    def retrieve(self, request, *args, **kwargs):
+        """Get quiz with questions for student attempt"""
+        quiz = self.get_object()
+        
+        # Check if student has already attempted this quiz
+        student_profile = getattr(request.user, 'student_profile', None)
+        if student_profile:
+            existing_attempt = QuizAttempt.objects.filter(
+                student=student_profile,
+                quiz=quiz,
+                status=QuizAttempt.AttemptStatus.COMPLETED
+            ).first()
+            
+            if existing_attempt:
+                # Return the results if already attempted
+                serializer = QuizResultSerializer(existing_attempt)
+                return Response({
+                    'quiz': QuizSerializer(quiz).data,
+                    'attempted': True,
+                    'result': serializer.data
+                })
+
+        # Return quiz with questions for new attempt
+        serializer = self.get_serializer(quiz)
+        return Response({
+            'quiz': serializer.data,
+            'attempted': False
+        })
+
+
+class StartQuizView(APIView):
+    """Start a quiz attempt"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, quiz_id):
+        student_profile = getattr(request.user, 'student_profile', None)
+        if not student_profile:
+            return Response(
+                {"error": "Only students can attempt quizzes"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            quiz = Quiz.objects.get(id=quiz_id, is_active=True)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"error": "Quiz not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if already attempted
+        existing_attempt = QuizAttempt.objects.filter(
+            student=student_profile,
+            quiz=quiz,
+        ).first()
+
+        if existing_attempt:
+            if existing_attempt.status == QuizAttempt.AttemptStatus.COMPLETED:
+                return Response(
+                    {"error": "You have already completed this quiz"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            elif existing_attempt.status == QuizAttempt.AttemptStatus.IN_PROGRESS:
+                deadline = None
+
+                if quiz.time_limit_minutes:
+                    deadline = (
+                        existing_attempt.started_at + timedelta(minutes=quiz.time_limit_minutes)
+                    )
+                # Resume existing attempt
+                return Response({
+                    "message": "Resuming existing attempt",
+                    "attempt_id": existing_attempt.id,
+                    "started_at": existing_attempt.started_at,
+                    "deadline": deadline,
+                    "quiz": QuizSerializer(quiz).data
+                })
+
+        # Create new attempt
+        attempt = QuizAttempt.objects.create(
+            student=student_profile,
+            quiz=quiz,
+            max_score=sum(q.points for q in quiz.questions.all())
+        )
+        deadline=None
+        if quiz.time_limit_minutes:
+            deadline = (attempt.started_at + timedelta(minutes=quiz.time_limit_minutes))
+
+        return Response({
+            "message": "Quiz started",
+            "attempt_id": attempt.id,
+            "started_at": attempt.started_at,
+            "deadline": deadline,
+            "quiz": QuizSerializer(quiz).data,
+            "time_limit": quiz.time_limit_minutes
+        }, status=status.HTTP_201_CREATED)
+
+       
+
+
+class SubmitQuizView(APIView):
+    """Submit quiz answers and calculate score"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, attempt_id):
+        student_profile = getattr(request.user, 'student_profile', None)
+
+        if not student_profile:
+            return Response(
+                {"error": "Only students can submit quizzes"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # ==========================================
+        # GET ACTIVE ATTEMPT
+        # ==========================================
+
+        try:
+            attempt = QuizAttempt.objects.select_related(
+                'quiz',
+                'quiz__lesson',
+            ).get(
+                id=attempt_id,
+                student=student_profile,
+                status=QuizAttempt.AttemptStatus.IN_PROGRESS
+            )
+        except QuizAttempt.DoesNotExist:
+            return Response(
+                {"error": "Quiz attempt not found or already completed"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+
+        now = timezone.now()
+        
+        if attempt.quiz.time_limit_minutes and attempt.started_at:
+            deadline = (attempt.started_at + timedelta(minutes=attempt.quiz.time_limit_minutes))
+            
+            if now > deadline:
+                attempt.status = QuizAttempt.AttemptStatus.COMPLETED
+                attempt.completed_at = now
+                attempt.passed = False
+                attempt.score = 0
+                attempt.save(
+                    update_fields=[
+                        "status",
+                        "completed_at",
+                        "passed",
+                        "score",
+                    ]
+                )
+                
+                return Response(
+                    {
+                        "error": "Quiz time limit exceeded.",
+                        "attempt_id": attempt.id,
+                        "time_limit_minutes": attempt.quiz.time_limit_minutes,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # ==========================================
+        # VALIDATE REQUEST DATA
+        # ==========================================
+
+        serializer = SubmitQuizSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        answers_data = serializer.validated_data["answers"]
+
+        quiz = attempt.quiz
+
+        # Load all questions belonging to this quiz
+        questions = {
+            question.id: question
+            for question in quiz.questions.prefetch_related("options").all()
+        }
+
+        # ==========================================
+        # VALIDATE QUESTION IDS
+        # ==========================================
+
+        for answer_data in answers_data:
+            question_id = answer_data["question_id"]
+
+            if question_id not in questions:
+                return Response(
+                    {
+                        "error": (
+                            f"Question {question_id} "
+                            f"does not belong to this quiz."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # ==========================================
+        # PREVENT DUPLICATE ANSWERS
+        # ==========================================
+
+        submitted_question_ids = [
+            answer["question_id"]
+            for answer in answers_data
+        ]
+
+        if len(submitted_question_ids) != len(set(submitted_question_ids)):
+            return Response(
+                {
+                    "error": "Each question can only be answered once."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ==========================================
+        # PROCESS SUBMISSION
+        # ==========================================
+
+        with transaction.atomic():
+
+            score = 0
+
+            for answer_data in answers_data:
+
+                question_id = answer_data["question_id"]
+                question = questions[question_id]
+
+                selected_option_id = answer_data.get("selected_option_id")
+                short_answer_text = answer_data.get("short_answer_text")
+
+                is_correct = False
+                points_earned = 0
+                selected_option = None
+
+                # ==========================================
+                # MULTIPLE CHOICE / TRUE-FALSE
+                # ==========================================
+
+                if question.question_type in [
+                    Question.QuestionType.MULTIPLE_CHOICE,
+                    Question.QuestionType.TRUE_FALSE,
+                ]:
+
+                    if selected_option_id is not None:
+
+                        selected_option = next(
+                            (
+                                option
+                                for option in question.options.all()
+                                if option.id == selected_option_id
+                            ),
+                            None
+                        )
+
+                        # Option does not belong to this question
+                        if selected_option is None:
+                            return Response(
+                                {
+                                    "error": (
+                                        f"Option {selected_option_id} "
+                                        f"does not belong to "
+                                        f"question {question_id}."
+                                    )
+                                },
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+
+                        # Check correctness
+                        is_correct = selected_option.is_correct
+
+                        if is_correct:
+                            points_earned = question.points
+                            score += question.points
+
+                # ==========================================
+                # SHORT ANSWER
+                # ==========================================
+
+                elif question.question_type == Question.QuestionType.SHORT_ANSWER:
+
+                    # Short answers require manual grading for now.
+                    is_correct = False
+                    points_earned = 0
+
+                # ==========================================
+                # SAVE ANSWER
+                # ==========================================
+
+                Answer.objects.create(
+                    attempt=attempt,
+                    question=question,
+                    selected_option=selected_option,
+                    short_answer_text=short_answer_text,
+                    is_correct=is_correct,
+                    points_earned=points_earned,
+                )
+
+            # ==========================================
+            # CALCULATE RESULT
+            # ==========================================
+
+            attempt.score = score
+            attempt.status = QuizAttempt.AttemptStatus.COMPLETED
+            attempt.completed_at = timezone.now()
+
+            score_percentage = (
+                (score / attempt.max_score) * 100
+                if attempt.max_score > 0
+                else 0
+            )
+
+            attempt.passed = (
+                score_percentage >= quiz.passing_score
+            )
+
+            attempt.save()
+
+            # ==========================================
+            # UPDATE LESSON PROGRESS
+            # ==========================================
+
+            if attempt.passed:
+
+                lesson = quiz.lesson
+
+                LessonProgress.objects.update_or_create(
+                    student=student_profile,
+                    lesson=lesson,
+                    defaults={
+                        "is_completed": True,
+                        "completed_at": timezone.now(),
+                    }
+                )
+
+                # ==========================================
+                # UPDATE COURSE ENROLLMENT
+                # ==========================================
+
+                enrollment = Enrollment.objects.filter(
+                    student=student_profile,
+                    course=lesson.chapter.course
+                ).first()
+
+                if enrollment:
+
+                    total_lessons = Lesson.objects.filter(
+                        chapter__course=enrollment.course
+                    ).count()
+
+                    completed_lessons = LessonProgress.objects.filter(
+                        student=student_profile,
+                        lesson__chapter__course=enrollment.course,
+                        is_completed=True
+                    ).count()
+
+                    enrollment.is_completed = (
+                        total_lessons > 0
+                        and completed_lessons == total_lessons
+                    )
+
+                    enrollment.save()
+
+        # ==========================================
+        # RETURN RESULT
+        # ==========================================
+
+        return Response(
+            {
+                "message": "Quiz submitted successfully",
+                "attempt_id": attempt.id,
+                "score": score,
+                "max_score": attempt.max_score,
+                "score_percentage": round(score_percentage, 2),
+                "passed": attempt.passed,
+                "passing_score": quiz.passing_score,
+            },
+            status=status.HTTP_200_OK
+        )
+    
+
+class QuizResultsView(APIView):
+    """Get detailed quiz results for a specific attempt"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, attempt_id):
+        student_profile = getattr(request.user, 'student_profile', None)
+        if not student_profile:
+            return Response(
+                {"error": "Only students can view quiz results"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            attempt = QuizAttempt.objects.get(
+                id=attempt_id,
+                student=student_profile,
+                status=QuizAttempt.AttemptStatus.COMPLETED
+            )
+        except QuizAttempt.DoesNotExist:
+            return Response(
+                {"error": "Quiz results not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = QuizResultSerializer(attempt)
+        return Response(serializer.data)
+
+
+class StudentQuizHistoryView(APIView):
+    """Get all quiz attempts for the current student"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        student_profile = getattr(request.user, 'student_profile', None)
+        if not student_profile:
+            return Response(
+                {"error": "Only students can view quiz history"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        attempts = QuizAttempt.objects.filter(
+            student=student_profile
+        ).select_related('quiz', 'quiz__lesson', 'quiz__lesson__chapter', 'quiz__lesson__chapter__course')
+
+        serializer = QuizAttemptSerializer(attempts, many=True)
+        return Response(serializer.data)

@@ -114,6 +114,11 @@ const studentNavGroups: NavGroup[] = [
         icon: Award,
       },
       {
+        title: "Quizzes & Scores",
+        url: "/students/Quizzes",
+        icon: Award,
+      },
+      {
         title: "My Reviews",
         url: "/students/reviews",
         icon: Star,
